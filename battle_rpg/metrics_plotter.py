@@ -5,7 +5,7 @@ def plot_training_metrics(log_content):
     ep_rewards = []
     ep_lengths = []
     value_losses = []
-    
+    Bella  = 0
     for line in log_content.split('\n'):
         if 'ep_rew_mean' in line:
             match = re.search(r'ep_rew_mean\s*\|\s*([-\d.]+)', line)
