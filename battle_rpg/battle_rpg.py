@@ -82,7 +82,7 @@ def train_agent():
 def test_agent(human_controlled=False):
     env = BattleEnv(human_controlled=human_controlled)  # Pass human_controlled parameter
     model = PPO.load("battle_model")
-    visualizer = BattleVisualizer()
+    visualizer = BattleVisualizer(human_controlled=human_controlled)
     
     obs, _ = env.reset()
     done = False
@@ -132,4 +132,4 @@ def test_agent(human_controlled=False):
 
 if __name__ == "__main__":
     #train_agent()
-    test_agent(human_controlled=True)
+    test_agent(human_controlled=False)

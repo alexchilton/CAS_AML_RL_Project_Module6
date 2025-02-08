@@ -4,11 +4,12 @@ from stable_baselines3 import PPO
 import numpy as np
 
 class BattleVisualizer:
-    def __init__(self, width=800, height=400):
+    def __init__(self, width=800, height=400, human_controlled=False):
         pygame.init()
         self.width = width
         self.height = height
         self.screen = pygame.display.set_mode((width, height))
+        self.human_controlled=human_controlled
         pygame.display.set_caption("Battle Game Visualization")
         
         self.WHITE = (255, 255, 255)
@@ -18,6 +19,12 @@ class BattleVisualizer:
         self.BLUE = (0, 0, 255)
         
         self.font = pygame.font.Font(None, 36)
+
+        # Get boss name at initialization if human-controlled
+        if self.human_controlled:
+            self.boss_name = input("Choose boss name: ")
+        else:
+            self.boss_name = "Boss"
         
     def draw_health_bar(self, x, y, width, height, health, max_health):
         pygame.draw.rect(self.screen, self.BLACK, (x, y, width, height), 2)
@@ -47,7 +54,7 @@ class BattleVisualizer:
         
         # Draw labels
         agent_text = self.font.render("Agent", True, self.BLACK)
-        boss_text = self.font.render("Boss", True, self.BLACK)
+        boss_text = self.font.render(self.boss_name, True, self.BLACK)
         self.screen.blit(agent_text, (170, 20))
         self.screen.blit(boss_text, (570, 20))
         

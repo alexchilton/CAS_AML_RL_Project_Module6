@@ -18,7 +18,8 @@ class BattleEnv(gym.Env):
         self.max_hp = 100
         self.attack1_damage = 15
         self.attack2_damage = 20
-        self.defense_reduction = 0.5
+        #self.defense_reduction = 0.5
+        self.defense_reduction = 0.9
         self.stance_buff = 1.5
         
     def reset(self, seed=None):
@@ -68,6 +69,7 @@ class BattleEnv(gym.Env):
         boss_damage_mult = self.stance_buff_boss
         self.stance_buff_agent = 1.0
         self.stance_buff_boss = 1.0
+        #self.stance_buff_boss = 1.5
         
         # Process actions
         agent_damage = 0
