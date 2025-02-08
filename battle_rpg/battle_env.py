@@ -3,8 +3,10 @@ import gymnasium as gym
 from gymnasium import spaces
 
 class BattleEnv(gym.Env):
-    def __init__(self):
+    def __init__(self, human_controlled=False):
         super().__init__()
+
+        self.human_controlled=human_controlled
         
         # Actions: attack1, attack2, defend, stance --> to be updated with what we want
         self.action_space = spaces.Discrete(4)
@@ -41,9 +43,20 @@ class BattleEnv(gym.Env):
     
     def _boss_action(self):
         # Simple boss AI: randomly choose action with some basic strategy --> we can add option that a person can play too agaist agent
-        if self.boss_hp < 30:  # Low HP - more likely to defend
-            return np.random.choice([0, 1, 2, 3], p=[0.3, 0.3, 0.3, 0.1])
-        return np.random.choice([0, 1, 2, 3], p=[0.4, 0.4, 0.1, 0.1])
+        if self.human_controlled:
+            while True:
+                try:
+                    action=int(input("Choose boss action (0: Attack1, 1: Attack2, 2: Defend, 3: Stance): "))
+                    if action in [0,1,2,3]:
+                        return action
+                    else:
+                        print('Invalid action! choose between 0-3')
+                except ValueError:
+                    print('Invalid input! Please enter a number between 0-3.')
+        else: 
+            if self.boss_hp < 30:  # Low HP - more likely to defend
+                return np.random.choice([0, 1, 2, 3], p=[0.3, 0.3, 0.3, 0.1])
+            return np.random.choice([0, 1, 2, 3], p=[0.4, 0.4, 0.1, 0.1])
     
     def step(self, action):
         self.last_action_agent = action
