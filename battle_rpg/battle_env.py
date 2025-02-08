@@ -46,8 +46,8 @@ class BattleEnv(gym.Env):
         if self.human_controlled:
             while True:
                 try:
-                    action=int(input("Choose boss action (0: Attack1, 1: Attack2, 2: Defend, 3: Stance): "))
-                    if action in [0,1,2,3]:
+                    action=int(input("Choose boss action (1: Attack1, 2: Attack2, 3: Defend, 4: Stance): "))
+                    if action in [1,2,3,4]:
                         return action
                     else:
                         print('Invalid action! choose between 0-3')
@@ -55,8 +55,8 @@ class BattleEnv(gym.Env):
                     print('Invalid input! Please enter a number between 0-3.')
         else: 
             if self.boss_hp < 30:  # Low HP - more likely to defend
-                return np.random.choice([0, 1, 2, 3], p=[0.3, 0.3, 0.3, 0.1])
-            return np.random.choice([0, 1, 2, 3], p=[0.4, 0.4, 0.1, 0.1])
+                return np.random.choice([1, 2, 3,4], p=[0.3, 0.3, 0.3, 0.1])
+            return np.random.choice([1, 2, 3, 4], p=[0.4, 0.4, 0.1, 0.1])
     
     def step(self, action):
         self.last_action_agent = action
@@ -76,23 +76,23 @@ class BattleEnv(gym.Env):
         boss_defending = False
         
         # Agent action
-        if action == 0:  # Attack 1
+        if action == 1:  # Attack 1
             agent_damage = self.attack1_damage * agent_damage_mult
-        elif action == 1:  # Attack 2
+        elif action == 2:  # Attack 2
             agent_damage = self.attack2_damage * agent_damage_mult
-        elif action == 2:  # Defend
+        elif action == 3:  # Defend
             agent_defending = True
-        elif action == 3:  # Stance
+        elif action == 4:  # Stance
             self.stance_buff_agent = self.stance_buff
         
         # Boss action
-        if boss_action == 0:
+        if boss_action == 1:
             boss_damage = self.attack1_damage * boss_damage_mult
-        elif boss_action == 1:
-            boss_damage = self.attack2_damage * boss_damage_mult
         elif boss_action == 2:
-            boss_defending = True
+            boss_damage = self.attack2_damage * boss_damage_mult
         elif boss_action == 3:
+            boss_defending = True
+        elif boss_action == 4:
             self.stance_buff_boss = self.stance_buff
         
         # Apply defense

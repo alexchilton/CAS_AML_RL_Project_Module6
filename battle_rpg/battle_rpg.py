@@ -132,4 +132,4 @@ def test_agent(human_controlled=False):
 
 if __name__ == "__main__":
     #train_agent()
-    test_agent(human_controlled=False)
+    test_agent(human_controlled=True)
