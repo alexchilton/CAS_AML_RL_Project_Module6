@@ -14,11 +14,14 @@ screen = pygame.display.set_mode((screen_width, screen_heigth))
 pygame.display.set_caption('Murren final boss battle')
 
 # define font
-font= pygame.font.SysFont('Times New Roman', 26)
+font= pygame.font.SysFont('Times New Roman', 21)
 
 # define color
 red=(255, 0, 0)
 green= (0, 255, 0)
+blue= (0, 0, 255)
+powderblue= (176,224,230)
+
 
 # load images
 # Game background
@@ -30,7 +33,7 @@ panel_image=pygame.image.load('img/Icons/panel_double.png').convert_alpha()
 # create function for drawing text
 def draw_text(text, font, text_col, x, y):
     img=font.render(text, True, text_col)
-    screen.blit(img, x, y)
+    screen.blit(img, (x, y))
 
 
 # function for drawing image
@@ -39,7 +42,13 @@ def draw_bg():
 
 # function to draw panel
 def draw_panel():
+    # drw panel rectangle
     screen.blit(panel_image, (0,screen_heigth- bottom_panel))
+    # show knight stats
+    draw_text(f'{knight.name} HP: {knight.hp}', font, blue, 120, screen_heigth-bottom_panel +10 )
+    for count, i in enumerate(bandit_list):
+        # show name and health
+        draw_text(f'{i.name} HP: {i.hp}', font, powderblue, 530, (screen_heigth-bottom_panel +10 )+count*50)
 
 
 # Fighter class
@@ -91,6 +100,22 @@ class Fighter():
         screen.blit(self.image, self.rect)
 
 
+class HealthBar():
+    def __init__(self, x, y, hp, max_hp):
+        self.x = x 
+        self.y = y
+        self.hp = hp
+        self.max_hp = max_hp
+
+    def draw(self, hp):
+        # update with new health
+        self.hp = hp
+        # calculate health ration
+        ratio = self.hp / self.max_hp
+        pygame.draw.rect(screen, red, (self.x, self.y, 150, 15))
+        pygame.draw.rect(screen, green, (self.x, self.y, 150*ratio, 15))
+
+
 knight=Fighter(200, 260, 'Knight', 30, 10, 3)
 bandit1 = Fighter(550, 270, 'Bandit', 20, 6, 1)
 bandit2 = Fighter(700, 270, 'Bandit', 20, 6, 1)
@@ -98,6 +123,10 @@ bandit2 = Fighter(700, 270, 'Bandit', 20, 6, 1)
 bandit_list= []
 bandit_list.append(bandit1)
 bandit_list.append(bandit2)
+
+knight_health_bar=HealthBar(120, screen_heigth-bottom_panel+40, knight.hp, knight.max_hp)
+bandit1_health_bar=HealthBar(530, screen_heigth-bottom_panel+40, bandit1.hp, bandit1.max_hp)
+bandit2_health_bar=HealthBar(530, screen_heigth-bottom_panel+90, bandit2.hp, bandit2.max_hp)
 
 
 run = True
@@ -109,6 +138,9 @@ while run:
     draw_bg()
     # draw panel
     draw_panel()
+    knight_health_bar.draw(knight.hp)
+    bandit1_health_bar.draw(bandit1.hp)
+    bandit2_health_bar.draw(bandit2.hp)
 
     # draw fighters
     knight.update()
