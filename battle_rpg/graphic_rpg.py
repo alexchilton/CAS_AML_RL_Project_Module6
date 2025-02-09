@@ -1,4 +1,5 @@
 import pygame
+import random
 
 pygame.init()
 
@@ -12,6 +13,12 @@ screen_heigth = 400 + bottom_panel
 
 screen = pygame.display.set_mode((screen_width, screen_heigth))
 pygame.display.set_caption('Murren final boss battle')
+
+# define game variables
+current_fighter = 1
+total_fighters = 3
+action_cooldown = 0
+action_wait_time = 90
 
 # define font
 font= pygame.font.SysFont('Times New Roman', 21)
@@ -94,8 +101,26 @@ class Fighter():
             self.frame_index += 1
         # if the animation has run out then reset back to the start
         if self.frame_index >= len(self.animation_list[self.action]):
-            self.frame_index=0
+            self.idle()
 
+    def idle(self):
+        # set variables to idle animation
+        self.action= 0
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+
+    
+    def attack(self, target):
+        # deal damage to enemy
+        rand = random.randint(-5,5)
+        damage = self.strenght + rand
+        target.hp -= damage
+        # set variables to attack animation
+        self.action= 1
+        self.frame_index = 0
+        self.update_time = pygame.time.get_ticks()
+    
+    
     def draw(self):
         screen.blit(self.image, self.rect)
 
@@ -148,6 +173,35 @@ while run:
     for bandit in bandit_list:
         bandit.update()
         bandit.draw()
+
+    # player action
+    if knight.alive == True:
+        if current_fighter == 1:
+            action_cooldown += 1
+            if action_cooldown >= action_wait_time:
+                # look for player action
+                # attack
+                knight.attack(bandit1)
+                current_fighter += 1
+                action_cooldown = 0
+
+    # enemy action
+    for count, bandit in enumerate(bandit_list):
+        if current_fighter == 2 + count:
+            if bandit.alive == True:
+                action_cooldown += 1
+                if action_cooldown >= action_wait_time:
+                    # attack
+                    bandit.attack(knight)
+                    current_fighter += 1
+                    action_cooldown = 0
+            else:
+                current_fighter += 1        
+
+    # if all fighter had a tun then reset
+    if current_fighter > total_fighters:
+        current_fighter = 1
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
