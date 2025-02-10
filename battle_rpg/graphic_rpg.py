@@ -19,6 +19,9 @@ current_fighter = 1
 total_fighters = 3
 action_cooldown = 0
 action_wait_time = 90
+attack = False
+potion = False
+clicked = False
 
 # define font
 font= pygame.font.SysFont('Times New Roman', 21)
@@ -35,6 +38,8 @@ powderblue= (176,224,230)
 background_image=pygame.image.load('img/Background/background.jpg').convert_alpha()
 # panel image
 panel_image=pygame.image.load('img/Icons/panel_double.png').convert_alpha()
+# sword image
+sword_image=pygame.image.load('img/Icons/sword.png').convert_alpha()
 
 
 # create function for drawing text
@@ -115,6 +120,10 @@ class Fighter():
         rand = random.randint(-5,5)
         damage = self.strenght + rand
         target.hp -= damage
+        # check if target died
+        if target.hp < 1:
+            target.hp = 0
+            target.alive = False
         # set variables to attack animation
         self.action= 1
         self.frame_index = 0
@@ -174,6 +183,25 @@ while run:
         bandit.update()
         bandit.draw()
 
+    # control player action
+    # reset action variables
+    attack = False
+    potion = False
+    target = None
+    # make sure mouse is visible
+    pygame.mouse.set_visible(True)
+    pos = pygame.mouse.get_pos()
+    for count, bandit in enumerate(bandit_list):
+        if bandit.rect.collidepoint(pos):
+            # hide the mouse
+            pygame.mouse.set_visible(False)
+            # show sword in place of mouse cursor
+            screen.blit(sword_image, pos)
+            if clicked == True:
+                attack = True
+                target = bandit_list[count]
+
+        
     # player action
     if knight.alive == True:
         if current_fighter == 1:
@@ -181,9 +209,10 @@ while run:
             if action_cooldown >= action_wait_time:
                 # look for player action
                 # attack
-                knight.attack(bandit1)
-                current_fighter += 1
-                action_cooldown = 0
+                if attack == True and target != None:
+                    knight.attack(target)
+                    current_fighter += 1
+                    action_cooldown = 0
 
     # enemy action
     for count, bandit in enumerate(bandit_list):
@@ -206,6 +235,10 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            clicked = True
+        else:
+            clicked = False
 
     pygame.display.update()
 
