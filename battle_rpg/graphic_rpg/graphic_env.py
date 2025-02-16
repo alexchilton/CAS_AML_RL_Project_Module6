@@ -1,124 +1,166 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
+import random
 
 class BattleEnv(gym.Env):
-    def __init__(self, human_controlled=False):
+    def __init__(self, strenght):
+        # super().__init__(current_fighter, total_fighters, action_cooldown, action_wait_time, attack, potion, potion_effect, game_over )
         super().__init__()
 
-        self.human_controlled=human_controlled
+        # Actions: attck bandit 1, attack bandit 2, use potion --> to be updated with what we want
+        self.action_space = spaces.Discrete(3)
         
-        # Actions: attack1, attack2, defend, stance --> to be updated with what we want
-        self.action_space = spaces.Discrete(4)
-        
-        # Observation space: [agent_hp, boss_hp, last_action_agent, last_action_boss, stance_buff_agent, stance_buff_boss]
+        # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
+        # 1 + 1*2 + 1 + 1*2 = 6
         self.observation_space = spaces.Box(low=0, high=100, shape=(6,), dtype=np.float32)
         
         # Game parameters
-        self.max_hp = 100
-        self.attack1_damage = 15
-        self.attack2_damage = 20
-        #self.defense_reduction = 0.5
-        self.defense_reduction = 0.9
-        self.stance_buff = 1.5
+        # current_fighter = 1
+        # total_fighters = 3
+        # action_cooldown = 0
+        # action_wait_time = 90
+        # attack = False
+        # potion = False
+        # potion_effect = 15
+        # game_over=0
+
+        self.total_fighters = 3
+        self.max_hp = 30
+        self.max_potions = 3
+        self.enemy_max_hp = 20
+        self.max_enemy_potions = 2
+        self.strenght= strenght
+
+        # calculation of damage with randomness
+        rand = random.randint(-5, 5)
+        damage = self.strenght + rand
+        self.attack_damage = damage
+        self.potion_effect = 15
+
         
     def reset(self, seed=None):
         super().reset(seed=seed)
+        # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
         self.agent_hp = self.max_hp
-        self.boss_hp = self.max_hp
+        self.bandit1_hp = self.enemy_max_hp
+        self.bandit2_hp = self.enemy_max_hp
+        self.agent_potions = self.max_potions
+        self.bandit1_potions = self.max_enemy_potions
+        self.bandit2_potions = self.max_enemy_potions
+
+        # reset last action
         self.last_action_agent = -1
-        self.last_action_boss = -1
-        self.stance_buff_agent = 1.0
-        self.stance_buff_boss = 1.0
+        self.last_action_bandit1 = -1
+        self.last_action_bandit2 = -1
+
         return self._get_state(), {}
     
     def _get_state(self):
+        # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
         return np.array([
             self.agent_hp,
-            self.boss_hp,
+            self.bandit1_hp,
+            self.bandit2_hp,
+            self.agent_potions,
+            self.bandit1_potions,
+            self.bandit2_potions, 
             self.last_action_agent,
-            self.last_action_boss,
-            self.stance_buff_agent,
-            self.stance_buff_boss
+            self.last_action_bandit1,
+            self.last_action_bandit2
         ], dtype=np.float32)
     
-    def _boss_action(self):
-        # Simple boss AI: randomly choose action with some basic strategy --> we can add option that a person can play too agaist agent
-        if self.human_controlled:
-            while True:
-                try:
-                    action=int(input("Choose boss action (1: Attack1, 2: Attack2, 3: Defend, 4: Stance): "))
-                    if action in [1,2,3,4]:
-                        return action
-                    else:
-                        print('Invalid action! choose between 0-3')
-                except ValueError:
-                    print('Invalid input! Please enter a number between 0-3.')
-        else: 
-            if self.boss_hp < 30:  # Low HP - more likely to defend
-                return np.random.choice([1, 2, 3,4], p=[0.3, 0.3, 0.3, 0.1])
-            return np.random.choice([1, 2, 3, 4], p=[0.4, 0.4, 0.1, 0.1])
-    
+    # def _bandit1_action(self):
+    #    # check if bandit needs to heal
+    #     if (self.bandit1_hp / self.enemy_max_hp) < 0.5 and self.bandit1_potions > 0:
+    #         return np.random.choice([1,2], p=[0.2, 0.8])  # if the hp are low more likely to heal
+    #     return np.random.choice([1,2], p=[0.8, 0.2])  # otherwise attack 
+
+    # def _bandit2_action(self):
+    #    # check if bandit needs to heal
+    #     if (self.bandit2_hp / self.enemy_max_hp) < 0.5 and self.bandit2_potions > 0:
+    #         return np.random.choice([1,2], p=[0.2, 0.8])  # if the hp are low more likely to heal
+    #     return np.random.choice([1,2], p=[0.8, 0.2])  # otherwise attack  
+
+    def _bandit_action(self, bandit_hp, bandit_potions):
+        # Check if bandit needs to heal
+        if (bandit_hp / self.enemy_max_hp) < 0.5 and bandit_potions > 0:
+            return np.random.choice([0, 1], p=[0.2, 0.8])  # More likely to heal when low HP
+        return np.random.choice([0, 1], p=[0.8, 0.2])  # More likely to attack otherwise
+
+
     def step(self, action):
+        # initialize the reward
+        reward = 0
+
+        # action recording
         self.last_action_agent = action
-        boss_action = self._boss_action()
-        self.last_action_boss = boss_action
-        
-        # Process stance buffs
-        agent_damage_mult = self.stance_buff_agent
-        boss_damage_mult = self.stance_buff_boss
-        self.stance_buff_agent = 1.0
-        self.stance_buff_boss = 1.0
-        #self.stance_buff_boss = 1.5
+        bandit1_action = self._bandit_action(self.bandit1_hp, self.bandit1_potions)
+        self.last_bandit1_action = bandit1_action
+        bandit2_action = self._bandit_action(self.bandit2_hp, self.bandit2_potions)
+        self.last_bandit2_action = bandit2_action
         
         # Process actions
-        agent_damage = 0
-        boss_damage = 0
-        agent_defending = False
-        boss_defending = False
+        agent_damage_to_bandit1 = 0
+        agent_damage_to_bandit2 = 0
+        bandit1_damage = 0
+        bandit2_damage = 0
+
         
         # Agent action
-        if action == 1:  # Attack 1
-            agent_damage = self.attack1_damage * agent_damage_mult
-        elif action == 2:  # Attack 2
-            agent_damage = self.attack2_damage * agent_damage_mult
-        elif action == 3:  # Defend
-            agent_defending = True
-        elif action == 4:  # Stance
-            self.stance_buff_agent = self.stance_buff
+        if action == 0:  # Attack bandit 1
+            agent_damage_to_bandit1 = self.attack_damage 
+            reward += 1
+        elif action == 1: # Attack bandit 2
+            agent_damage_to_bandit2 = self.attack_damage
+            reward += 1
+        elif action == 2:  # heal
+            if self.agent_potions > 0:
+                if self.max_hp - self.agent_hp > self.potion_effect:
+                    heal_amount = self.potion_effect
+                    reward += 1
+                else:
+                    heal_amount = self.max_hp - self.agent_hp
+                    reward += 0.5
+                self.agent_hp += heal_amount
+                self.agent_potions -= 1
         
-        # Boss action
-        if boss_action == 1:
-            boss_damage = self.attack1_damage * boss_damage_mult
-        elif boss_action == 2:
-            boss_damage = self.attack2_damage * boss_damage_mult
-        elif boss_action == 3:
-            boss_defending = True
-        elif boss_action == 4:
-            self.stance_buff_boss = self.stance_buff
-        
-        # Apply defense
-        if agent_defending:
-            boss_damage *= self.defense_reduction
-        if boss_defending:
-            agent_damage *= self.defense_reduction
+        # Bandit1 action
+        if bandit1_action == 0:
+            bandit1_damage = self.attack_damage
+        else:  # use the potion
+            if self.bandit1_potions > 0:
+                heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
+                self.bandit1_hp += heal_amount
+                self.bandit1_potions -= 1
+        # Bandit2 action
+        if bandit2_action == 0:  # Attack
+            bandit2_damage = self.attack_damage
+        else:  # Use potion
+            if self.bandit2_potions > 0:
+                heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
+                self.bandit2_hp += heal_amount
+                self.bandit2_potions -= 1
         
         # Apply damage
-        self.boss_hp -= agent_damage
-        self.agent_hp -= boss_damage
-        
+        self.bandit1_hp -= agent_damage_to_bandit1
+        self.bandit2_hp -= agent_damage_to_bandit2
+        self.agent_hp -= (bandit1_damage + bandit2_damage)
+
+        # ensure that hp values don't go below 0
+        self.agent_hp = max(0, self.agent_hp)
+        self.bandit1_hp = max(0, self.bandit1_hp)
+        self.bandit2_hp = max(0, self.bandit2_hp)
+
         # Check game over
-        done = self.agent_hp <= 0 or self.boss_hp <= 0
+        done = (self.agent_hp <= 0) or (self.bandit1_hp <= 0 and self.bandit2_hp <= 0)
         truncated = False
         
         # Calculate reward
-        reward = 0
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -100
+                reward = -10
             else:  # Agent won
-                reward = 100 + self.agent_hp  # Bonus for remaining HP
-        else:
-            reward = agent_damage - boss_damage  # Reward for good trades
+                reward = 10 + self.agent_hp  # Bonus for remaining HP
         
         return self._get_state(), reward, done, truncated, {}

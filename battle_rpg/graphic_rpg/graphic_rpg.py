@@ -75,11 +75,11 @@ def draw_panel():
 
 # Fighter class
 class Fighter():
-    def __init__(self, x, y, name, max_hp, strnght, potions):
+    def __init__(self, x, y, name, max_hp, strenght, potions):
         self.name=name
         self.max_hp=max_hp
         self.hp=max_hp
-        self.strenght=strnght
+        self.strenght=strenght
         self.start_potions=potions
         self.potions=potions
         self.alive = True
