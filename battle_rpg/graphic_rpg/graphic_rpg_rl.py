@@ -101,7 +101,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         "MlpPolicy", 
         env, 
         verbose=1, 
-        device='cpu'
+        device='cpu',
         learning_rate=3e-4, 
         n_steps=2048, 
         batch_size=64, 
@@ -109,7 +109,8 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2, 
-        tensorboard_log="./ppo_battle_tensorboard/")
+        tensorboard_log="./ppo_battle_tensorboard/"
+    )
 
     # to output file
     original_stdout=sys.stdout
@@ -209,3 +210,6 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 if __name__ == "__main__":
     train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
 #    test_agent()
+
+
+
