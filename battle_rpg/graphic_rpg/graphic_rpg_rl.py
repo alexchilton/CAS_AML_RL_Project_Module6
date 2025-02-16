@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 import pygame
 
 from graphic_env import BattleEnv
-from graphic_visualizer import GraphicVisualizer  # not yet created
+# from graphic_visualizer import GraphicVisualizer  # not yet created
 from metrics_plotter import plot_training_metrics
 
 # def train_agent():
@@ -102,14 +102,14 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=3e-4, 
+        learning_rate=1e-4, 
         n_steps=2048, 
-        batch_size=64, 
-        n_epochs=10, 
+        batch_size=512, 
+        n_epochs=40, 
         gamma=0.99,
         gae_lambda=0.95,
-        clip_range=0.2, 
-        tensorboard_log="./ppo_battle_tensorboard/"
+        clip_range=0.1, 
+        #tensorboard_log="./ppo_battle_tensorboard/"
     )
 
     # to output file
@@ -133,82 +133,82 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     model.save("graphic_rpg_model")
     print(f"model saved as 'graphic_rpg_model' " )
 
-def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
-    """
-    Test the trained agent.
+# def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
+#     """
+#     Test the trained agent.
     
-    Args:
-        num_episodes (int): Number of episodes to test
-        agent_strength (int): Strength parameter for the agent
-        bandit_strength (int): Strength parameter for the bandits
-    """
-    env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
-    model = PPO.load("graphic_rpg_model")
-    visualizer = GraphicVisualizer()
+#     Args:
+#         num_episodes (int): Number of episodes to test
+#         agent_strength (int): Strength parameter for the agent
+#         bandit_strength (int): Strength parameter for the bandits
+#     """
+#     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
+#     model = PPO.load("graphic_rpg_model")
+#     visualizer = GraphicVisualizer()
     
-    try:
-        print("\nStarting battle visualization...")
-        print("(Close the pygame window to stop)")
+#     try:
+#         print("\nStarting battle visualization...")
+#         print("(Close the pygame window to stop)")
         
-        for episode in range(num_episodes):
-            obs, _ = env.reset()
-            episode_reward = 0
-            step_count = 0
+#         for episode in range(num_episodes):
+#             obs, _ = env.reset()
+#             episode_reward = 0
+#             step_count = 0
             
-            print(f"\nEpisode {episode + 1}/{num_episodes}")
+#             print(f"\nEpisode {episode + 1}/{num_episodes}")
             
-            while True:
-                # Get action from model
-                action, _ = model.predict(obs, deterministic=True)
+#             while True:
+#                 # Get action from model
+#                 action, _ = model.predict(obs, deterministic=True)
                 
-                # Print current state
-                print(f"\nStep {step_count + 1}")
-                print(f"Agent HP: {obs[0]:.1f}, Bandit1 HP: {obs[1]:.1f}, Bandit2 HP: {obs[2]:.1f}")
-                print(f"Agent Potions: {obs[3]:.1f}, Bandit1 Potions: {obs[4]:.1f}, Bandit2 Potions: {obs[5]:.1f}")
-                print(f"Action taken: {['Attack Bandit1', 'Attack Bandit2', 'Use Potion'][action]}")
+#                 # Print current state
+#                 print(f"\nStep {step_count + 1}")
+#                 print(f"Agent HP: {obs[0]:.1f}, Bandit1 HP: {obs[1]:.1f}, Bandit2 HP: {obs[2]:.1f}")
+#                 print(f"Agent Potions: {obs[3]:.1f}, Bandit1 Potions: {obs[4]:.1f}, Bandit2 Potions: {obs[5]:.1f}")
+#                 print(f"Action taken: {['Attack Bandit1', 'Attack Bandit2', 'Use Potion'][action]}")
                 
-                # Visualize current state
-                visualizer.visualize_state(obs, action)
+#                 # Visualize current state
+#                 visualizer.visualize_state(obs, action)
                 
-                # Take action
-                new_obs, reward, done, truncated, _ = env.step(action)
-                episode_reward += reward
-                step_count += 1
+#                 # Take action
+#                 new_obs, reward, done, truncated, _ = env.step(action)
+#                 episode_reward += reward
+#                 step_count += 1
                 
-                if done:
-                    print(f"\nEpisode {episode + 1} finished!")
-                    print(f"Final State - Agent HP: {new_obs[0]:.1f}, Bandit1 HP: {new_obs[1]:.1f}, Bandit2 HP: {new_obs[2]:.1f}")
-                    print(f"Episode Reward: {episode_reward:.1f}")
-                    print(f"Steps taken: {step_count}")
-                    visualizer.visualize_state(new_obs, action, game_over=True)
-                    break
+#                 if done:
+#                     print(f"\nEpisode {episode + 1} finished!")
+#                     print(f"Final State - Agent HP: {new_obs[0]:.1f}, Bandit1 HP: {new_obs[1]:.1f}, Bandit2 HP: {new_obs[2]:.1f}")
+#                     print(f"Episode Reward: {episode_reward:.1f}")
+#                     print(f"Steps taken: {step_count}")
+#                     visualizer.visualize_state(new_obs, action, game_over=True)
+#                     break
                     
-                obs = new_obs
+#                 obs = new_obs
                 
-                # Add small delay for visualization
-                pygame.time.wait(500)
+#                 # Add small delay for visualization
+#                 pygame.time.wait(500)
             
-            # Wait between episodes
-            pygame.time.wait(2000)
+#             # Wait between episodes
+#             pygame.time.wait(2000)
 
         
-        # Keep window open until we closes it
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    break
-            pygame.display.flip()
+#         # Keep window open until we closes it
+#         running = True
+#         while running:
+#             for event in pygame.event.get():
+#                 if event.type == pygame.QUIT:
+#                     running = False
+#                     break
+#             pygame.display.flip()
             
-    except KeyboardInterrupt:
-        print("\nVisualization stopped by user")
-    finally:
-        visualizer.close()
-        env.close()
+#     except KeyboardInterrupt:
+#         print("\nVisualization stopped by user")
+#     finally:
+#         visualizer.close()
+#         env.close()
         
 if __name__ == "__main__":
-    train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
+    train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6)
 #    test_agent()
 
 

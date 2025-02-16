@@ -35,8 +35,8 @@ class BattleEnv(gym.Env):
         self.potion_effect = 15
     
     def _calculate_attack_damage(self):
-        agent_rand = random.radint(-5, 5)
-        bandit_rand = random.radint(-5, 5)
+        agent_rand = random.randint(-5, 5)
+        bandit_rand = random.randint(-5, 5)
         self.agent_attack_damage = self.agent_strength + agent_rand
         self.bandit_attack_damage = self.bandit_strength + bandit_rand
 
@@ -83,6 +83,7 @@ class BattleEnv(gym.Env):
     def step(self, action):
         # initialize the reward
         reward = 0
+        self._calculate_attack_damage()
 
         # action recording
         self.last_action_agent = action
@@ -101,20 +102,36 @@ class BattleEnv(gym.Env):
         # Agent action
         if action == 0:  # Attack bandit 1
             agent_damage_to_bandit1 = self.agent_attack_damage 
-            reward += 1
+            # reward proportial to damage dealth
+            reward += agent_damage_to_bandit1 *0.2
+            # extra bonus for killing
+            if self.bandit1_hp <= 0:
+                reward += 5
         elif action == 1: # Attack bandit 2
             agent_damage_to_bandit2 = self.agent_attack_damage
-            reward += 1
+            # reward proportional to damage 
+            reward += agent_damage_to_bandit2*0.2
+            # extra points for killing
+            if self.bandit2_hp <= 0:
+                reward += 5
         elif action == 2:  # heal
             if self.agent_potions > 0:
                 if self.max_hp - self.agent_hp > self.potion_effect:
                     heal_amount = self.potion_effect
-                    reward += 1
                 else:
                     heal_amount = self.max_hp - self.agent_hp
-                    reward += 0.5
+
                 self.agent_hp += heal_amount
                 self.agent_potions -= 1
+
+                #strategic reward based on hp before healing
+                hp_percentage_before = (self.agent_hp - heal_amount) / self.max_hp
+                if hp_percentage_before < 0.3:   # critical hp
+                    reward += 3
+                elif hp_percentage_before < 0.7: # medium hp
+                    reward +=1
+                else: # high hp
+                    reward -= 1 # penalize unnecessary healing
         
         # Bandit1 action
         if bandit1_action == 0:
@@ -143,6 +160,10 @@ class BattleEnv(gym.Env):
         self.bandit1_hp = max(0, self.bandit1_hp)
         self.bandit2_hp = max(0, self.bandit2_hp)
 
+        # total_damage_taken = bandit1_damage + bandit2_damage
+        # if total_damage_taken > 0:
+        #     reward -= total_damage_taken*0.1
+
         # Check game over
         done = (self.agent_hp <= 0) or (self.bandit1_hp <= 0 and self.bandit2_hp <= 0)
         truncated = False
@@ -150,8 +171,11 @@ class BattleEnv(gym.Env):
         # Calculate reward
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -10
+                reward = -20
             else:  # Agent won
-                reward = 10 + self.agent_hp  # Bonus for remaining HP
+                remaining_hp_percentage = self.agent_hp / self.max_hp
+                reward += 20 + (remaining_hp_percentage * 10)  # Bonus for remaining HP
+                if self.agent_potions > 0:
+                    reward += self.agent_potions*2 
         
         return self._get_state(), reward, done, truncated, {}
