@@ -22,6 +22,7 @@ class BattleEnv(gym.Env):
 
 
         self.total_fighters = 3
+        self.current_fighter = 1
         self.max_hp = 30
         self.max_potions = 3
         self.enemy_max_hp = 20
@@ -76,8 +77,99 @@ class BattleEnv(gym.Env):
     def _bandit_action(self, bandit_hp, bandit_potions):
         # Check if bandit needs to heal
         if (bandit_hp / self.enemy_max_hp) < 0.5 and bandit_potions > 0:
-            return np.random.choice([0, 1], p=[0, 1])  # More likely to heal when low HP
-        return np.random.choice([0, 1], p=[1, 0])  # More likely to attack otherwise
+            return np.random.choice([0, 1], p=[0, 1])  # Must heal when low HP
+        return np.random.choice([0, 1], p=[1, 0])  # Must attack otherwise
+    
+    def _handle_agent_turn(self, action):
+        reward = 0
+        
+        # Agent action
+        if action == 0:  # Attack bandit 1
+            if self.bandit1_hp > 0:
+                agent_damage_to_bandit1 = self.agent_attack_damage
+                self.bandit1_hp -= agent_damage_to_bandit1
+                # reward proportional to damage dealt
+                reward += agent_damage_to_bandit1 * 0.2
+                # check if bandit died AFTER damage is applied
+                if self.bandit1_hp <= 0:
+                    self.bandit1_hp = 0  # ensure hp doesn't go negative
+                    reward += 5  # bonus for kill
+            else:
+                reward = -10  # penalty for attacking dead bandit
+                
+        elif action == 1:  # Attack bandit 2
+            if self.bandit2_hp > 0:
+                agent_damage_to_bandit2 = self.agent_attack_damage
+                self.bandit2_hp -= agent_damage_to_bandit2
+                reward += agent_damage_to_bandit2 * 0.2
+                if self.bandit2_hp <= 0:
+                    self.bandit2_hp = 0
+                    reward += 5
+            else:
+                reward = -10
+                
+        elif action == 2:  # Heal
+            if self.agent_potions > 0:
+                if self.max_hp - self.agent_hp > self.potion_effect:
+                    heal_amount = self.potion_effect
+                else:
+                    heal_amount = self.max_hp - self.agent_hp
+                
+                # Store HP before healing for reward calculation
+                hp_percentage_before = self.agent_hp / self.max_hp
+                
+                self.agent_hp += heal_amount
+                self.agent_potions -= 1
+                
+                # Strategic reward based on when healing occurred
+                if hp_percentage_before < 0.3:  # critical hp
+                    reward += 5
+                elif hp_percentage_before < 0.7:  # medium hp
+                    reward += 3
+                else:  # high hp
+                    reward -= 2  # penalize unnecessary healing
+                    
+                if self.bandit1_hp <= 0 or self.bandit2_hp <= 0:
+                    reward -= 1  # Small penalty for healing when one enemy is already dead
+                
+        
+        return reward
+
+    def _handle_bandit1_turn(self):
+        reward = 0
+        if self.bandit1_hp > 0:  # Only act if alive
+            # Get bandit's action (already recorded in step method)
+            bandit_action = self.last_bandit1_action
+            
+            if bandit_action == 0:  # Attack
+                self.agent_hp -= self.bandit_attack_damage
+                self.agent_hp = max(0, self.agent_hp)  # Ensure HP doesn't go negative
+                
+            else:  # Heal
+                if self.bandit1_potions > 0:
+                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
+                    self.bandit1_hp += heal_amount
+                    self.bandit1_potions -= 1
+        
+        return reward
+
+    def _handle_bandit2_turn(self):
+        reward = 0
+        if self.bandit2_hp > 0:  # Only act if alive
+            # Get bandit's action (already recorded in step method)
+            bandit_action = self.last_bandit2_action
+            
+            if bandit_action == 0:  # Attack
+                self.agent_hp -= self.bandit_attack_damage
+                self.agent_hp = max(0, self.agent_hp)  # Ensure HP doesn't go negative
+                
+            else:  # Heal
+                if self.bandit2_potions > 0:
+                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
+                    self.bandit2_hp += heal_amount
+                    self.bandit2_potions -= 1
+        
+        return reward
 
 
     def step(self, action):
@@ -85,100 +177,33 @@ class BattleEnv(gym.Env):
         reward = 0
         self._calculate_attack_damage()
 
-        # action recording
-        self.last_action_agent = action
-        bandit1_action = self._bandit_action(self.bandit1_hp, self.bandit1_potions)
-        self.last_bandit1_action = bandit1_action
-        bandit2_action = self._bandit_action(self.bandit2_hp, self.bandit2_potions)
-        self.last_bandit2_action = bandit2_action
-        
-        # Process actions
-        agent_damage_to_bandit1 = 0
-        agent_damage_to_bandit2 = 0
-        bandit1_damage = 0
-        bandit2_damage = 0
 
-        
-        # Agent action
-        if action == 0:  # Attack bandit 1
-            if self.bandit1_hp >0: 
-                agent_damage_to_bandit1 = self.agent_attack_damage 
-            # reward proportial to damage dealth
-                reward += agent_damage_to_bandit1 *0.2
-                # extra bonus for killing
-                if self.bandit1_hp <= 0:
-                    reward += 5
-            else:
-                reward = -10    # prevent impossible action 
+        # Record action only for current fighter
+        if self.current_fighter == 1:
+            self.last_action_agent = action
+        elif self.current_fighter == 2:
+            self.last_bandit1_action = self._bandit_action(self.bandit1_hp, self.bandit1_potions)
+        elif self.current_fighter == 3:
+            self.last_bandit2_action = self._bandit_action(self.bandit2_hp, self.bandit2_potions)
 
-        elif action == 1: # Attack bandit 2
-            if self.bandit2_hp > 0:
-                agent_damage_to_bandit2 = self.agent_attack_damage
-                # reward proportional to damage 
-                reward += agent_damage_to_bandit2*0.2
-                # extra points for killing
-                if self.bandit2_hp <= 0:
-                    reward += 5
-            else: 
-                reward = -10    # prevent impossible action 
-        
-        elif action == 2:  # heal
-            if self.agent_potions > 0:
-                if self.max_hp - self.agent_hp > self.potion_effect:
-                    heal_amount = self.potion_effect
-                else:
-                    heal_amount = self.max_hp - self.agent_hp
+        # Process only the current fighter's action
+        if self.current_fighter == 1:  # Agent's turn
+            reward = self._handle_agent_turn(action)
+        elif self.current_fighter == 2:  # Bandit1's turn
+            reward = self._handle_bandit1_turn()
+        elif self.current_fighter == 3:  # Bandit2's turn
+            reward = self._handle_bandit2_turn()
 
-                self.agent_hp += heal_amount
-                self.agent_potions -= 1
+        self.current_fighter += 1
+        if self.current_fighter > self.total_fighters:
+            self.current_fighter = 1
 
-                #strategic reward based on hp before healing
-                hp_percentage_before = (self.agent_hp - heal_amount) / self.max_hp
-                if hp_percentage_before < 0.3:   # critical hp
-                    reward += 3
-                elif hp_percentage_before < 0.7: # medium hp
-                    reward +=1
-                else: # high hp
-                    reward -= 1 # penalize unnecessary healing
-        
-        # Bandit1 action
-        if self.bandit1_hp > 0:
-            if bandit1_action == 0:
-                bandit1_damage = self.bandit_attack_damage
-            else:  # use the potion
-                if self.bandit1_potions > 0:
-                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
-                    self.bandit1_hp += heal_amount
-                    self.bandit1_potions -= 1
-        else:
-            bandit1_damage = 0
 
-        
-        # Bandit2 action
-        if self.bandit2_hp > 0:
-            if bandit2_action == 0:  # Attack
-                bandit2_damage = self.bandit_attack_damage
-            else:  # Use potion
-                if self.bandit2_potions > 0:
-                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
-                    self.bandit2_hp += heal_amount
-                    self.bandit2_potions -= 1
-        else: 
-            bandit2_damage = 0
-        
-        # Apply damage
-        self.bandit1_hp -= agent_damage_to_bandit1
-        self.bandit2_hp -= agent_damage_to_bandit2
-        self.agent_hp -= (bandit1_damage + bandit2_damage)
 
         # ensure that hp values don't go below 0
         self.agent_hp = max(0, self.agent_hp)
         self.bandit1_hp = max(0, self.bandit1_hp)
         self.bandit2_hp = max(0, self.bandit2_hp)
-
-        # total_damage_taken = bandit1_damage + bandit2_damage
-        # if total_damage_taken > 0:
-        #     reward -= total_damage_taken*0.1
 
         # Check game over
         done = (self.agent_hp <= 0) or (self.bandit1_hp <= 0 and self.bandit2_hp <= 0)
