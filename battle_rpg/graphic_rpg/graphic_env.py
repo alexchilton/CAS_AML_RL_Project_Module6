@@ -101,19 +101,27 @@ class BattleEnv(gym.Env):
         
         # Agent action
         if action == 0:  # Attack bandit 1
-            agent_damage_to_bandit1 = self.agent_attack_damage 
+            if self.bandit1_hp >0: 
+                agent_damage_to_bandit1 = self.agent_attack_damage 
             # reward proportial to damage dealth
-            reward += agent_damage_to_bandit1 *0.2
-            # extra bonus for killing
-            if self.bandit1_hp <= 0:
-                reward += 5
+                reward += agent_damage_to_bandit1 *0.2
+                # extra bonus for killing
+                if self.bandit1_hp <= 0:
+                    reward += 5
+            else:
+                reward = -10    # prevent impossible action 
+
         elif action == 1: # Attack bandit 2
-            agent_damage_to_bandit2 = self.agent_attack_damage
-            # reward proportional to damage 
-            reward += agent_damage_to_bandit2*0.2
-            # extra points for killing
-            if self.bandit2_hp <= 0:
-                reward += 5
+            if self.bandit2_hp > 0:
+                agent_damage_to_bandit2 = self.agent_attack_damage
+                # reward proportional to damage 
+                reward += agent_damage_to_bandit2*0.2
+                # extra points for killing
+                if self.bandit2_hp <= 0:
+                    reward += 5
+            else: 
+                reward = -10    # prevent impossible action 
+        
         elif action == 2:  # heal
             if self.agent_potions > 0:
                 if self.max_hp - self.agent_hp > self.potion_effect:
@@ -134,22 +142,29 @@ class BattleEnv(gym.Env):
                     reward -= 1 # penalize unnecessary healing
         
         # Bandit1 action
-        if bandit1_action == 0:
-            bandit1_damage = self.bandit_attack_damage
-        else:  # use the potion
-            if self.bandit1_potions > 0:
-                heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
-                self.bandit1_hp += heal_amount
-                self.bandit1_potions -= 1
+        if self.bandit1_hp > 0:
+            if bandit1_action == 0:
+                bandit1_damage = self.bandit_attack_damage
+            else:  # use the potion
+                if self.bandit1_potions > 0:
+                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
+                    self.bandit1_hp += heal_amount
+                    self.bandit1_potions -= 1
+        else:
+            bandit1_damage = 0
+
         
         # Bandit2 action
-        if bandit2_action == 0:  # Attack
-            bandit2_damage = self.bandit_attack_damage
-        else:  # Use potion
-            if self.bandit2_potions > 0:
-                heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
-                self.bandit2_hp += heal_amount
-                self.bandit2_potions -= 1
+        if self.bandit2_hp > 0:
+            if bandit2_action == 0:  # Attack
+                bandit2_damage = self.bandit_attack_damage
+            else:  # Use potion
+                if self.bandit2_potions > 0:
+                    heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
+                    self.bandit2_hp += heal_amount
+                    self.bandit2_potions -= 1
+        else: 
+            bandit2_damage = 0
         
         # Apply damage
         self.bandit1_hp -= agent_damage_to_bandit1
