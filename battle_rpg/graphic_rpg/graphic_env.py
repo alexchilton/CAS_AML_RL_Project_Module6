@@ -11,9 +11,13 @@ class BattleEnv(gym.Env):
         # Actions: attck bandit 1, attack bandit 2, use potion --> to be updated with what we want
         self.action_space = spaces.Discrete(3)
         
-        # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
-        # 1 + 1*2 + 1 + 1*2 = 6
-        self.observation_space = spaces.Box(low=0, high=100, shape=(6,), dtype=np.float32)
+        # Observation space: [agent_hp, bandit1_hp, bandit2_hp, agent_potions, bandit1_potions, bandit2_potions,
+        #                    last_action_agent, last_action_bandit1, last_action_bandit2]
+        self.observation_space = spaces.Box(
+            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1]), 
+            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2]), 
+            dtype=np.float32
+        )
         
         # Game parameters
         # current_fighter = 1
@@ -70,17 +74,6 @@ class BattleEnv(gym.Env):
             self.last_action_bandit2
         ], dtype=np.float32)
     
-    # def _bandit1_action(self):
-    #    # check if bandit needs to heal
-    #     if (self.bandit1_hp / self.enemy_max_hp) < 0.5 and self.bandit1_potions > 0:
-    #         return np.random.choice([1,2], p=[0.2, 0.8])  # if the hp are low more likely to heal
-    #     return np.random.choice([1,2], p=[0.8, 0.2])  # otherwise attack 
-
-    # def _bandit2_action(self):
-    #    # check if bandit needs to heal
-    #     if (self.bandit2_hp / self.enemy_max_hp) < 0.5 and self.bandit2_potions > 0:
-    #         return np.random.choice([1,2], p=[0.2, 0.8])  # if the hp are low more likely to heal
-    #     return np.random.choice([1,2], p=[0.8, 0.2])  # otherwise attack  
 
     def _bandit_action(self, bandit_hp, bandit_potions):
         # Check if bandit needs to heal
