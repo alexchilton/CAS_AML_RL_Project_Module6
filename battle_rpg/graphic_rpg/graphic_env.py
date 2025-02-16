@@ -4,7 +4,7 @@ from gymnasium import spaces
 import random
 
 class BattleEnv(gym.Env):
-    def __init__(self, strenght):
+    def __init__(self, agent_strength= 10, bandit_strength = 6):
         # super().__init__(current_fighter, total_fighters, action_cooldown, action_wait_time, attack, potion, potion_effect, game_over )
         super().__init__()
 
@@ -19,20 +19,26 @@ class BattleEnv(gym.Env):
             dtype=np.float32
         )
         
-        
+
 
         self.total_fighters = 3
         self.max_hp = 30
         self.max_potions = 3
         self.enemy_max_hp = 20
         self.max_enemy_potions = 2
-        self.strenght= strenght
-
-        # calculation of damage with randomness
-        rand = random.randint(-5, 5)
-        damage = self.strenght + rand
-        self.attack_damage = damage
+        self.agent_strength= agent_strength
+        self.bandit_strength = bandit_strength
+        
+        # Attack damage to reset at each episode
+        self.agent_attack_damage = None 
+        self.bandit_attack_damage = None
         self.potion_effect = 15
+    
+    def _calculate_attack_damage(self):
+        agent_rand = random.radint(-5, 5)
+        bandit_rand = random.radint(-5, 5)
+        self.agent_attack_damage = self.agent_strength + agent_rand
+        self.bandit_attack_damage = self.bandit_strength + bandit_rand
 
         
     def reset(self, seed=None):
@@ -94,10 +100,10 @@ class BattleEnv(gym.Env):
         
         # Agent action
         if action == 0:  # Attack bandit 1
-            agent_damage_to_bandit1 = self.attack_damage 
+            agent_damage_to_bandit1 = self.agent_attack_damage 
             reward += 1
         elif action == 1: # Attack bandit 2
-            agent_damage_to_bandit2 = self.attack_damage
+            agent_damage_to_bandit2 = self.agent_attack_damage
             reward += 1
         elif action == 2:  # heal
             if self.agent_potions > 0:
@@ -112,7 +118,7 @@ class BattleEnv(gym.Env):
         
         # Bandit1 action
         if bandit1_action == 0:
-            bandit1_damage = self.attack_damage
+            bandit1_damage = self.bandit_attack_damage
         else:  # use the potion
             if self.bandit1_potions > 0:
                 heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
@@ -120,7 +126,7 @@ class BattleEnv(gym.Env):
                 self.bandit1_potions -= 1
         # Bandit2 action
         if bandit2_action == 0:  # Attack
-            bandit2_damage = self.attack_damage
+            bandit2_damage = self.bandit_attack_damage
         else:  # Use potion
             if self.bandit2_potions > 0:
                 heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit2_hp)
