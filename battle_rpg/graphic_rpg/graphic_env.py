@@ -76,8 +76,8 @@ class BattleEnv(gym.Env):
     def _bandit_action(self, bandit_hp, bandit_potions):
         # Check if bandit needs to heal
         if (bandit_hp / self.enemy_max_hp) < 0.5 and bandit_potions > 0:
-            return np.random.choice([0, 1], p=[0.2, 0.8])  # More likely to heal when low HP
-        return np.random.choice([0, 1], p=[0.8, 0.2])  # More likely to attack otherwise
+            return np.random.choice([0, 1], p=[0, 1])  # More likely to heal when low HP
+        return np.random.choice([0, 1], p=[1, 0])  # More likely to attack otherwise
 
 
     def step(self, action):
@@ -141,6 +141,7 @@ class BattleEnv(gym.Env):
                 heal_amount = min(self.potion_effect, self.enemy_max_hp - self.bandit1_hp)
                 self.bandit1_hp += heal_amount
                 self.bandit1_potions -= 1
+        
         # Bandit2 action
         if bandit2_action == 0:  # Attack
             bandit2_damage = self.bandit_attack_damage
