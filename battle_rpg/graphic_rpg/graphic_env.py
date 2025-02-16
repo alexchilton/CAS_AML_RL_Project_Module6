@@ -19,15 +19,7 @@ class BattleEnv(gym.Env):
             dtype=np.float32
         )
         
-        # Game parameters
-        # current_fighter = 1
-        # total_fighters = 3
-        # action_cooldown = 0
-        # action_wait_time = 90
-        # attack = False
-        # potion = False
-        # potion_effect = 15
-        # game_over=0
+        
 
         self.total_fighters = 3
         self.max_hp = 30
