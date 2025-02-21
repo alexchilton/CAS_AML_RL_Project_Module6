@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 import pygame
 
 from graphic_env import BattleEnv
-# from graphic_visualizer import GraphicVisualizer  # not yet created
+#from graphic_visualizer import GameVisualizer  
 from metrics_plotter import plot_training_metrics
 
 
