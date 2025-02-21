@@ -65,8 +65,6 @@ while run:
     
     if agent_button.draw():
         subprocess.Popen([sys.executable, 'graphic_demo.py'])
-        #subprocess.run([sys.executable, 'graphic_rpg.py'])
-        #sys.exit()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
