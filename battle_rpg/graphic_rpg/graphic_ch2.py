@@ -26,11 +26,11 @@ powderblue= (176,224,230)
 
 # load images 
 # background image
-background_img = pygame.image.load('img/Background/main_bg_resized.jpg').convert_alpha()
+background_img = pygame.image.load('img/Background/ch2_bg_resized.jpg').convert_alpha()
 
 # Buttons
-ch_1_img = pygame.image.load('img/Icons/RPG_Button_1_noBg copy.png').convert_alpha()
-ch_2_img = pygame.image.load('img/Icons/RPG_Button_2_noBg copy.png').convert_alpha()
+player_img = pygame.image.load('img/Icons/RPG_Button_player.png').convert_alpha()
+agent_img = pygame.image.load('img/Icons/RPG_Button_agent.png').convert_alpha()
 
 # create function for drawing text 
 def draw_text(text, font, text_col, x, y):
@@ -43,14 +43,8 @@ def draw_bg():
     screen.blit(background_img, (0,0))
 
 # create buttons
-chapter_1_button = button.Button(screen, 190, 150, ch_1_img, 420, 65)
-chapter_2_button = button.Button(screen, 190, 250, ch_2_img, 420, 65)
-
-# start a new chapter of the game
-def start_chapter_2():
-    # import chapter module
-    subprocess.run([sys.executable, 'graphic_rpg.py'])
-    sys.exit()
+player_button = button.Button(screen, 190, 170, player_img, 165, 62)
+agent_button = button.Button(screen, 450, 170, agent_img, 165, 62)
 
 run = True
 while run:
@@ -60,17 +54,19 @@ while run:
     draw_bg()
 
     # draw title text
-    draw_text("The Mürren games", font, blue, 220, 50)
+    draw_text("The battle challenge", font, blue, 190, 50)
 
     # draw button and check click 
     pos = pygame.mouse.get_pos()
-    
+
     # Check and draw buttons
-    if chapter_1_button.draw():
-        print('Chapter 1 button pressed')
+    if player_button.draw():
+        subprocess.Popen([sys.executable, 'graphic_rpg.py'])
     
-    if chapter_2_button.draw():
-        subprocess.Popen([sys.executable, 'graphic_ch2.py'])
+    if agent_button.draw():
+        subprocess.Popen([sys.executable, 'graphic_demo.py'])
+        #subprocess.run([sys.executable, 'graphic_rpg.py'])
+        #sys.exit()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -79,3 +75,5 @@ while run:
     pygame.display.update()
 
 pygame.quit()
+
+
