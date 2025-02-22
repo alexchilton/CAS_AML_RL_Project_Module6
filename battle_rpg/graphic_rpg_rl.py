@@ -113,8 +113,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-#   train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=2, agent_strength=10, bandit_strength=6)
+   train_agent(total_timesteps=100000000, agent_strength=10, bandit_strength=6)
+    #test_agent(num_episodes=2, agent_strength=10, bandit_strength=6)
 
 
 
