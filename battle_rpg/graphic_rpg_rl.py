@@ -30,10 +30,14 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     class ResidualBlock(nn.Module):
         def __init__(self, channels):
             super().__init__()
+            self.norm1 = nn.LayerNorm(channels)
+            self.norm2 = nn.LayerNorm(channels)
             self.layers = nn.Sequential(
                 nn.Linear(channels, channels),
+                self.norm1,
                 nn.ReLU(),
-                nn.Linear(channels, channels)
+                nn.Linear(channels, channels),
+                self.norm2
             )
         
         def forward(self, x):
@@ -45,6 +49,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
             
             n_input = int(np.prod(observation_space.shape))
             
+            self.input_norm = nn.LayerNorm(n_input)  # Normalize inputs
             self.input_layer = nn.Sequential(
                 nn.Linear(n_input, 128),
                 nn.ReLU()
@@ -59,7 +64,8 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
             self.output_layer = nn.Linear(128, features_dim)
 
         def forward(self, observations: torch.Tensor) -> torch.Tensor:
-            x = self.input_layer(observations)
+            x = self.input_norm(observations)  # Apply input normalization
+            x = self.input_layer(x)
             for res_block in self.res_blocks:
                 x = res_block(x)
             return self.output_layer(x)
@@ -86,7 +92,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         clip_range=0.2, 
         normalize_advantage=True, 
         max_grad_norm=0.5,
-        vf_coef = 0.3, 
+        vf_coef = 0.5, # increased from 0.3
         policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
@@ -174,7 +180,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         
 if __name__ == "__main__":
    train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-   #test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+   #test_agent(num_episodes=50, agent_strength=10, bandit_strength=6)
 
 
 
