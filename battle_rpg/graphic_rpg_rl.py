@@ -4,7 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from stable_baselines3 import PPO
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 import pygame
+import torch.nn as nn
+import torch.nn.functional as F
+import torch
+import gymnasium as gym
 
 from graphic_env import BattleEnv
 #from graphic_visualizer import GameVisualizer  
@@ -18,24 +23,71 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     Args:
         total_timesteps (int): Number of timesteps to train for
         strength (int): Initial strength parameter for the environment
-    """
+    """    
     # initialize the enviroment
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
+    
+    class ResidualBlock(nn.Module):
+        def __init__(self, channels):
+            super().__init__()
+            self.layers = nn.Sequential(
+                nn.Linear(channels, channels),
+                nn.ReLU(),
+                nn.Linear(channels, channels)
+            )
+        
+        def forward(self, x):
+            return F.relu(x + self.layers(x))
+
+    class CustomResNetwork(BaseFeaturesExtractor):
+        def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 128):
+            super().__init__(observation_space, features_dim)
+            
+            n_input = int(np.prod(observation_space.shape))
+            
+            self.input_layer = nn.Sequential(
+                nn.Linear(n_input, 128),
+                nn.ReLU()
+            )
+            
+            self.res_blocks = nn.ModuleList([
+                ResidualBlock(128),
+                ResidualBlock(128),
+                ResidualBlock(128)
+            ])
+            
+            self.output_layer = nn.Linear(128, features_dim)
+
+        def forward(self, observations: torch.Tensor) -> torch.Tensor:
+            x = self.input_layer(observations)
+            for res_block in self.res_blocks:
+                x = res_block(x)
+            return self.output_layer(x)
+
+    # Modified policy kwargs for PPO initialization
+    policy_kwargs = dict(
+        features_extractor_class=CustomResNetwork,
+        features_extractor_kwargs=dict(features_dim=128),
+        net_arch=[dict(pi=[128, 128], vf=[128, 128])]
+    )
+       
     # initialize the PPO model 
     model = PPO(
         "MlpPolicy", 
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=1e-4, 
-        n_steps=2048, 
-        batch_size=512, 
+        learning_rate=5e-5, 
+        n_steps=1024, 
+        batch_size=256, 
         n_epochs=40, 
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2, 
         normalize_advantage=True, 
-        vf_coef = 0.3
+        max_grad_norm=0.5,
+        vf_coef = 0.3, 
+        policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
 
@@ -121,8 +173,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=50, agent_strength=10, bandit_strength=6)
+   train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
+   #test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
 
 

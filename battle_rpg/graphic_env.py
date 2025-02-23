@@ -26,7 +26,7 @@ class BattleEnv(gym.Env):
         self.max_hp = 30
         self.max_potions = 3
         self.enemy_max_hp = 20
-        self.max_enemy_potions = 2
+        self.max_enemy_potions = 1
         self.agent_strength= agent_strength
         self.bandit_strength = bandit_strength
         
