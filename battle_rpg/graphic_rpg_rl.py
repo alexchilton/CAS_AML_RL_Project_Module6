@@ -49,7 +49,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
             
             n_input = int(np.prod(observation_space.shape))
             
-            self.input_norm = nn.LayerNorm(n_input)  # Normalize inputs
+            self.input_norm = nn.LayerNorm(n_input)
             self.input_layer = nn.Sequential(
                 nn.Linear(n_input, 128),
                 nn.ReLU()
@@ -61,14 +61,16 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
                 ResidualBlock(128)
             ])
             
-            self.output_layer = nn.Linear(128, features_dim)
+            self.shared_layer = nn.Linear(128, features_dim)
+            self.final_norm = nn.LayerNorm(features_dim)
 
         def forward(self, observations: torch.Tensor) -> torch.Tensor:
-            x = self.input_norm(observations)  # Apply input normalization
+            x = self.input_norm(observations)
             x = self.input_layer(x)
             for res_block in self.res_blocks:
                 x = res_block(x)
-            return self.output_layer(x)
+            x = self.shared_layer(x)
+            return self.final_norm(x)
 
     # Modified policy kwargs for PPO initialization
     policy_kwargs = dict(
@@ -83,16 +85,17 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=5e-5, 
-        n_steps=1024, 
-        batch_size=256, 
+        learning_rate=1e-4, 
+        n_steps=2048, 
+        batch_size=1024, 
         n_epochs=40, 
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2, 
+        clip_range_vf=0.2,  # Add value function clipping
+        vf_coef = 0.3,
         normalize_advantage=True, 
         max_grad_norm=0.5,
-        vf_coef = 0.5, # increased from 0.3
         policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
@@ -180,7 +183,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         
 if __name__ == "__main__":
    #train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6)
-   test_agent(num_episodes=50, agent_strength=10, bandit_strength=6)
+   test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
 
 
