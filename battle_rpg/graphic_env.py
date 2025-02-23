@@ -91,14 +91,14 @@ class BattleEnv(gym.Env):
                 # reward proportional to damage dealt
                 reward += agent_damage_to_bandit1 * 0.5
                 # check if bandit died AFTER damage is applied
-                if self.bandit1_hp>0:
-                    reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
+                # if self.bandit1_hp>0:
+                #     reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
                     
                 if self.bandit1_hp <= 0:
                     self.bandit1_hp = 0  # ensure hp doesn't go negative
                     reward += 10  # bonus for kill
             else:
-                reward = -15  # penalty for attacking dead bandit
+                reward = -50  # penalty for attacking dead bandit
                 
         elif action == 1:  # Attack bandit 2
             if self.bandit2_hp > 0:
@@ -109,14 +109,14 @@ class BattleEnv(gym.Env):
                 print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
                 reward += agent_damage_to_bandit2 * 0.5
 
-                if self.bandit2_hp > 0:
-                    reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
+                # if self.bandit2_hp > 0:
+                #     reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
                 
                 if self.bandit2_hp <= 0:
                     self.bandit2_hp = 0
                     reward += 10
             else:
-                reward = -15
+                reward = -50
                 
         elif action == 2:  # Heal
             if self.agent_potions > 0:
@@ -226,10 +226,10 @@ class BattleEnv(gym.Env):
         # Calculate reward
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -25
+                reward = -100
             else:  # Agent won
                 remaining_hp_percentage = self.agent_hp / self.max_hp
-                reward += 25 + (remaining_hp_percentage * 15)  # Bonus for remaining HP
+                reward += 100 + (remaining_hp_percentage * 15)  # Bonus for remaining HP
                 if self.agent_potions > 0:
                     reward += self.agent_potions*3 
         

@@ -75,12 +75,12 @@ def draw_panel():
 
 # Fighter class
 class Fighter():
-    def __init__(self, x, y, name, max_hp, strenght, potions):
+    def __init__(self, x, y, name, max_hp, strenght, potions, max_potions):
         self.name=name
         self.max_hp=max_hp
         self.hp=max_hp
         self.strenght=strenght
-        self.start_potions=potions
+        self.start_potions=max_potions
         self.potions=potions
         self.alive = True
         self.animation_list=[]
@@ -221,9 +221,9 @@ class DamageText(pygame.sprite.Sprite):
 damage_text_group = pygame.sprite.Group()
 
 
-knight=Fighter(200, 260, 'Knight', 30, 10, 3)
-bandit1 = Fighter(550, 270, 'Bandit', 20, 6, 1)
-bandit2 = Fighter(700, 270, 'Bandit', 20, 6, 1)
+knight=Fighter(200, 260, 'Knight', 30, 10, 3, 3)
+bandit1 = Fighter(550, 270, 'Bandit', 20, 6, 1, 1)
+bandit2 = Fighter(700, 270, 'Bandit', 20, 6, 1, 1)
 
 bandit_list= []
 bandit_list.append(bandit1)
