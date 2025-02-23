@@ -27,13 +27,13 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=5e-5, 
-        n_steps=1024, 
-        batch_size=256, 
+        learning_rate=1e-4, 
+        n_steps=2048, 
+        batch_size=512, 
         n_epochs=40, 
         gamma=0.99,
         gae_lambda=0.95,
-        clip_range=0.1, 
+        clip_range=0.2, 
         normalize_advantage=True, 
         vf_coef = 0.3
         #tensorboard_log="./ppo_battle_tensorboard/"
@@ -72,6 +72,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
     """
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
     model = PPO.load("graphic_rpg_model")
+    wins = 0
+    losses = 0 
     
     try:
         print("\nStarting battle visualization...")
@@ -105,6 +107,12 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
                     print(f"Final State - Agent HP: {new_obs[0]:.1f}, Bandit1 HP: {new_obs[1]:.1f}, Bandit2 HP: {new_obs[2]:.1f}")
                     print(f"Episode Reward: {episode_reward:.1f}")
                     print(f"Steps taken: {step_count}")
+                    if env.agent_hp <= 0:
+                        losses += 1
+                    else:
+                        wins += 1
+                    print(f'Number of wins: {wins}')
+                    print(f'Number of losses: {losses}')
                     break
                     
                 obs = new_obs
@@ -113,8 +121,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   train_agent(total_timesteps=100000000, agent_strength=10, bandit_strength=6)
-    #test_agent(num_episodes=2, agent_strength=10, bandit_strength=6)
+   #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
+    test_agent(num_episodes=50, agent_strength=10, bandit_strength=6)
 
 
 

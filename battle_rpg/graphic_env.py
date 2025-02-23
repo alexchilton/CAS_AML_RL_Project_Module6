@@ -77,8 +77,8 @@ class BattleEnv(gym.Env):
     def _bandit_action(self, bandit_hp, bandit_potions):
         # Check if bandit needs to heal
         if (bandit_hp / self.enemy_max_hp) < 0.5 and bandit_potions > 0:
-            return np.random.choice([0, 1], p=[0, 1])  # Must heal when low HP
-        return np.random.choice([0, 1], p=[1, 0])  # Must attack otherwise
+            return 1  # Must heal when low HP
+        return 0  # Must attack otherwise
     
     def _handle_agent_turn(self, action):
         reward = 0
@@ -89,24 +89,34 @@ class BattleEnv(gym.Env):
                 agent_damage_to_bandit1 = self.agent_attack_damage
                 self.bandit1_hp -= agent_damage_to_bandit1
                 # reward proportional to damage dealt
-                reward += agent_damage_to_bandit1 * 0.2
+                reward += agent_damage_to_bandit1 * 0.5
                 # check if bandit died AFTER damage is applied
+                if self.bandit1_hp>0:
+                    reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
+                    
                 if self.bandit1_hp <= 0:
                     self.bandit1_hp = 0  # ensure hp doesn't go negative
-                    reward += 5  # bonus for kill
+                    reward += 10  # bonus for kill
             else:
-                reward = -10  # penalty for attacking dead bandit
+                reward = -15  # penalty for attacking dead bandit
                 
         elif action == 1:  # Attack bandit 2
             if self.bandit2_hp > 0:
                 agent_damage_to_bandit2 = self.agent_attack_damage
+                print(f"Before attack: Bandit2 HP = {self.bandit2_hp}")
+                print(f"Damage dealt = {agent_damage_to_bandit2}")
                 self.bandit2_hp -= agent_damage_to_bandit2
-                reward += agent_damage_to_bandit2 * 0.2
+                print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
+                reward += agent_damage_to_bandit2 * 0.5
+
+                if self.bandit2_hp > 0:
+                    reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
+                
                 if self.bandit2_hp <= 0:
                     self.bandit2_hp = 0
-                    reward += 5
+                    reward += 10
             else:
-                reward = -10
+                reward = -15
                 
         elif action == 2:  # Heal
             if self.agent_potions > 0:
@@ -123,15 +133,19 @@ class BattleEnv(gym.Env):
                 
                 # Strategic reward based on when healing occurred
                 if hp_percentage_before < 0.3:  # critical hp
-                    reward += 5
+                    reward += 8
                 elif hp_percentage_before < 0.7:  # medium hp
-                    reward += 3
+                    reward += 4
                 else:  # high hp
-                    reward -= 2  # penalize unnecessary healing
+                    reward -= 4  # penalize unnecessary healing
                     
                 if self.bandit1_hp <= 0 or self.bandit2_hp <= 0:
                     reward -= 1  # Small penalty for healing when one enemy is already dead
                 
+                # consider state when healing
+                alive_enemies = (self.bandit1_hp > 0) + (self.bandit2_hp > 0)
+                if alive_enemies == 1:
+                    reward -= 2 # Bigger penalty for healing with only one enemy left
         
         return reward
 
@@ -212,11 +226,11 @@ class BattleEnv(gym.Env):
         # Calculate reward
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -20
+                reward = -25
             else:  # Agent won
                 remaining_hp_percentage = self.agent_hp / self.max_hp
-                reward += 20 + (remaining_hp_percentage * 10)  # Bonus for remaining HP
+                reward += 25 + (remaining_hp_percentage * 15)  # Bonus for remaining HP
                 if self.agent_potions > 0:
-                    reward += self.agent_potions*2 
+                    reward += self.agent_potions*3 
         
         return self._get_state(), reward, done, truncated, {}
