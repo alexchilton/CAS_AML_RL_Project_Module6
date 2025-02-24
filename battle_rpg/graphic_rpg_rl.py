@@ -87,7 +87,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         device='cpu',
         learning_rate=1e-4, 
         n_steps=2048, 
-        batch_size=1024, 
+        batch_size=2048, 
         n_epochs=40, 
         gamma=0.99,
         gae_lambda=0.95,
@@ -182,7 +182,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   #train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6)
+   #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
    test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
 
