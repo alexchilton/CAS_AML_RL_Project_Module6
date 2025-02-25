@@ -72,7 +72,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
             x = self.shared_layer(x)
             return self.final_norm(x)
 
-    # Modified policy kwargs for PPO initialization
+    # Modified policy kwargs for PPO 
     policy_kwargs = dict(
         features_extractor_class=CustomResNetwork,
         features_extractor_kwargs=dict(features_dim=128),
@@ -85,17 +85,17 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=1e-4, 
+        learning_rate=3e-4, 
         n_steps=2048, 
-        batch_size=2048, 
-        n_epochs=40, 
+        batch_size=512, 
+        n_epochs=15, 
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2, 
         clip_range_vf=0.2,  # Add value function clipping
-        vf_coef = 0.3,
+        vf_coef = 0.5,
         normalize_advantage=True, 
-        max_grad_norm=0.5,
+        max_grad_norm=0.3,
         policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
@@ -183,7 +183,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         
 if __name__ == "__main__":
    #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-   test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+   test_agent(num_episodes=2, agent_strength=10, bandit_strength=6)
 
 
 

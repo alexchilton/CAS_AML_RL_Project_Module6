@@ -14,12 +14,10 @@ class BattleEnv(gym.Env):
         # Observation space: [agent_hp, bandit1_hp, bandit2_hp, agent_potions, bandit1_potions, bandit2_potions,
         #                    last_action_agent, last_action_bandit1, last_action_bandit2]
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1]), 
-            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2]), 
+            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0]), 
+            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1]), 
             dtype=np.float32
         )
-        
-
 
         self.total_fighters = 3
         self.current_fighter = 1
@@ -35,12 +33,13 @@ class BattleEnv(gym.Env):
         self.bandit_attack_damage = None
         self.potion_effect = 15
     
+
     def _calculate_attack_damage(self):
         agent_rand = random.randint(-5, 5)
         bandit_rand = random.randint(-5, 5)
         self.agent_attack_damage = self.agent_strength + agent_rand
         self.bandit_attack_damage = self.bandit_strength + bandit_rand
-
+        print(f"[DEBUG] New Damage Roll - Agent: {self.agent_attack_damage}, Bandit: {self.bandit_attack_damage}")
         
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -60,6 +59,13 @@ class BattleEnv(gym.Env):
         return self._get_state(), {}
     
     def _get_state(self):
+            # Determine which actions are valid:
+    # 1 if valid, 0 otherwise.
+        valid_actions = [
+        1 if self.bandit1_hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
+        1 if self.bandit2_hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
+        1 if self.agent_potions > 0 else 0  # Use potion valid if agent has potions
+    ]
         # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
         return np.array([
             self.agent_hp,
@@ -70,7 +76,8 @@ class BattleEnv(gym.Env):
             self.bandit2_potions, 
             self.last_action_agent,
             self.last_action_bandit1,
-            self.last_action_bandit2
+            self.last_action_bandit2, 
+            *valid_actions
         ], dtype=np.float32)
     
 
@@ -89,32 +96,32 @@ class BattleEnv(gym.Env):
                 agent_damage_to_bandit1 = self.agent_attack_damage
                 self.bandit1_hp -= agent_damage_to_bandit1
                 # reward proportional to damage dealt
-                reward += agent_damage_to_bandit1 * 0.5
+                reward += agent_damage_to_bandit1 * 0.2
                 # check if bandit died AFTER damage is applied
                 # if self.bandit1_hp>0:
                 #     reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
                     
                 if self.bandit1_hp <= 0:
                     self.bandit1_hp = 0  # ensure hp doesn't go negative
-                    reward += 10  # bonus for kill
+                    reward += 5  # bonus for kill
             else:
                 reward = -50  # penalty for attacking dead bandit
                 
         elif action == 1:  # Attack bandit 2
             if self.bandit2_hp > 0:
                 agent_damage_to_bandit2 = self.agent_attack_damage
-                print(f"Before attack: Bandit2 HP = {self.bandit2_hp}")
-                print(f"Damage dealt = {agent_damage_to_bandit2}")
+                #print(f"Before attack: Bandit2 HP = {self.bandit2_hp}")
+                #print(f"Damage dealt = {agent_damage_to_bandit2}")
                 self.bandit2_hp -= agent_damage_to_bandit2
-                print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
-                reward += agent_damage_to_bandit2 * 0.5
+                #print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
+                reward += agent_damage_to_bandit2 * 0.2
 
                 # if self.bandit2_hp > 0:
                 #     reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
                 
                 if self.bandit2_hp <= 0:
                     self.bandit2_hp = 0
-                    reward += 10
+                    reward += 5
             else:
                 reward = -50
                 
@@ -133,19 +140,19 @@ class BattleEnv(gym.Env):
                 
                 # Strategic reward based on when healing occurred
                 if hp_percentage_before < 0.3:  # critical hp
-                    reward += 8
-                elif hp_percentage_before < 0.7:  # medium hp
                     reward += 4
+                elif hp_percentage_before < 0.7:  # medium hp
+                    reward += 2
                 else:  # high hp
-                    reward -= 4  # penalize unnecessary healing
+                    reward -= 2  # penalize unnecessary healing
                     
-                if self.bandit1_hp <= 0 or self.bandit2_hp <= 0:
-                    reward -= 1  # Small penalty for healing when one enemy is already dead
+                # if self.bandit1_hp <= 0 or self.bandit2_hp <= 0:
+                #     reward -= 1  # Small penalty for healing when one enemy is already dead
                 
-                # consider state when healing
-                alive_enemies = (self.bandit1_hp > 0) + (self.bandit2_hp > 0)
-                if alive_enemies == 1:
-                    reward -= 2 # Bigger penalty for healing with only one enemy left
+                # # consider state when healing
+                # alive_enemies = (self.bandit1_hp > 0) + (self.bandit2_hp > 0)
+                # if alive_enemies == 1:
+                #     reward -= 2 # Bigger penalty for healing with only one enemy left
         
         return reward
 
@@ -203,10 +210,14 @@ class BattleEnv(gym.Env):
         # Process only the current fighter's action
         if self.current_fighter == 1:  # Agent's turn
             reward = self._handle_agent_turn(action)
+            print(f"[DEBUG] After Agent Attack - Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
         elif self.current_fighter == 2:  # Bandit1's turn
             reward = self._handle_bandit1_turn()
         elif self.current_fighter == 3:  # Bandit2's turn
             reward = self._handle_bandit2_turn()
+        
+        # reward clipping 
+        reward = np.clip(reward, -10, 10)
 
         self.current_fighter += 1
         if self.current_fighter > self.total_fighters:
@@ -226,11 +237,11 @@ class BattleEnv(gym.Env):
         # Calculate reward
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -100
+                reward = -30
             else:  # Agent won
                 remaining_hp_percentage = self.agent_hp / self.max_hp
-                reward += 100 + (remaining_hp_percentage * 15)  # Bonus for remaining HP
-                if self.agent_potions > 0:
-                    reward += self.agent_potions*3 
-        
+                reward += 30 + (remaining_hp_percentage * 5)  # Bonus for remaining HP
+                # if self.agent_potions > 0:
+                #     reward += self.agent_potions*3 
+        print(f"[DEBUG] Before Returning Step - Agent HP: {self.agent_hp}, Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
         return self._get_state(), reward, done, truncated, {}
