@@ -27,25 +27,75 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     # initialize the enviroment
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
     
-    class LSTMFeatureExtractor(BaseFeaturesExtractor):
-        def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 128):
-            super().__init__(observation_space, features_dim)
-            input_dim = int(np.prod(observation_space.shape))
+    # class LSTMPredictor(BaseFeaturesExtractor):
+    #     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
+    #         super().__init__(observation_space, features_dim)
             
-            self.lstm = nn.LSTM(input_dim, features_dim, batch_first=True)
-            self.fc = nn.Linear(features_dim, features_dim)
+    #         n_input = int(np.prod(observation_space.shape))
+    #         self.lstm_hidden_size = 256  # Increased memory size
+    #         self.lstm_layers = 2  # Added an extra LSTM layer
             
-        def forward(self, observations: torch.Tensor) -> torch.Tensor:
-            x = observations.unsqueeze(1)  # Add sequence dimension
-            lstm_out, _ = self.lstm(x)
-            return self.fc(lstm_out[:, -1, :])
+    #         self.input_layer = nn.Sequential(
+    #             nn.Linear(n_input, 256),
+    #             nn.SiLU(),  # Swish activation for smoother gradient flow
+    #             nn.LayerNorm(256)
+    #         )
+            
+    #         self.lstm = nn.LSTM(256, self.lstm_hidden_size, num_layers=self.lstm_layers, batch_first=True)
+            
+    #         self.fc = nn.Sequential(
+    #             nn.Linear(self.lstm_hidden_size, features_dim),
+    #             nn.SiLU(),
+    #             nn.LayerNorm(features_dim)
+    #         )
+
+    #     def forward(self, observations: torch.Tensor) -> torch.Tensor:
+    #         x = self.input_layer(observations)
+    #         x, _ = self.lstm(x.unsqueeze(0))  # Keep batch_first=True
+    #         x = self.fc(x.squeeze(0))
+    #         return x
     
-    policy_kwargs = dict(
-        features_extractor_class=LSTMFeatureExtractor,
-        features_extractor_kwargs=dict(features_dim=128),
-        net_arch=[dict(pi=[128, 128], vf=[128, 128])]
-    )
+    # policy_kwargs = dict(
+    #     features_extractor_class=LSTMPredictor,
+    #     features_extractor_kwargs=dict(features_dim=256),
+    #     net_arch=[dict(pi=[256, 256], vf=[256, 256])]
+    # )
        
+    class LSTMPredictor(BaseFeaturesExtractor):
+        def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
+            super().__init__(observation_space, features_dim)
+            
+            n_input = int(np.prod(observation_space.shape))
+            self.lstm_hidden_size = 128  # Reduced from 256 to 128
+            self.lstm_layers = 1  # Only 1 LSTM layer for simplicity
+            
+            self.input_layer = nn.Sequential(
+                nn.Linear(n_input, 256),
+                nn.SiLU(),  
+                nn.LayerNorm(256)
+            )
+            
+            self.lstm = nn.LSTM(256, self.lstm_hidden_size, num_layers=self.lstm_layers, batch_first=True)
+
+            self.fc = nn.Sequential(
+                nn.Linear(self.lstm_hidden_size, features_dim),
+                nn.LeakyReLU(0.1),  
+                nn.LayerNorm(features_dim)
+            )
+
+        def forward(self, observations: torch.Tensor) -> torch.Tensor:
+            x = self.input_layer(observations)
+            x, _ = self.lstm(x.unsqueeze(0))  # Keep batch_first=True
+            x = self.fc(x.squeeze(0))
+            return x
+
+    policy_kwargs = dict(
+        features_extractor_class=LSTMPredictor,
+        features_extractor_kwargs=dict(features_dim=256),
+        net_arch=[128, 128]  # Reduced from 256, 256
+    )
+
+
     # initialize the PPO model 
     model = PPO(
         "MlpPolicy", 
@@ -54,15 +104,16 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         device='cpu',
         learning_rate=1e-4,  # reduced in switch Resnet --> LSTM
         n_steps=2048,   # reduced in switch Resnet --> LSTM
-        batch_size=2048, # increased in switch Resnet --> LSTM
+        batch_size=512, 
         n_epochs=25, # increased in switch Resnet --> LSTM
         gamma=0.95,  # adjusted for temporal credit assignment
         gae_lambda=0.98,  # adjusted for temporal credit assignment
         clip_range=0.2, 
         clip_range_vf=0.1,  # Add value function clipping
         vf_coef = 0.5,
+        ent_coef= 0.02,   # explore smarter exploration
         normalize_advantage=True, 
-        max_grad_norm=0.7,  # prevent explosing gradient
+        max_grad_norm=0.3,  # prevent explosing gradient
         policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
@@ -149,8 +200,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   train_agent(total_timesteps=2000000, agent_strength=10, bandit_strength=6)
-   #test_agent(num_episodes=10, agent_strength=10, bandit_strength=6)
+   train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
+   #test_agent(num_episodes=5, agent_strength=10, bandit_strength=6)
 
 
 
