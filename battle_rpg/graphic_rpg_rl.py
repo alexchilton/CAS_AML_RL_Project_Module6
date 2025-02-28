@@ -53,13 +53,13 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         verbose=1, 
         device='cpu',
         learning_rate=1e-4,  # reduced in switch Resnet --> LSTM
-        n_steps=1024,   # reduced in switch Resnet --> LSTM
+        n_steps=2048,   # reduced in switch Resnet --> LSTM
         batch_size=2048, # increased in switch Resnet --> LSTM
         n_epochs=25, # increased in switch Resnet --> LSTM
-        gamma=0.97,  # adjusted for temporal credit assignment
-        gae_lambda=0.9,  # adjusted for temporal credit assignment
+        gamma=0.95,  # adjusted for temporal credit assignment
+        gae_lambda=0.98,  # adjusted for temporal credit assignment
         clip_range=0.2, 
-        clip_range_vf=0.2,  # Add value function clipping
+        clip_range_vf=0.1,  # Add value function clipping
         vf_coef = 0.5,
         normalize_advantage=True, 
         max_grad_norm=0.7,  # prevent explosing gradient
@@ -149,8 +149,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-   test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+   train_agent(total_timesteps=2000000, agent_strength=10, bandit_strength=6)
+   #test_agent(num_episodes=10, agent_strength=10, bandit_strength=6)
 
 
 
