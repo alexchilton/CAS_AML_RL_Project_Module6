@@ -18,7 +18,7 @@ from metrics_plotter import plot_training_metrics
 
 def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6):
     """
-    Train the PPO agent.
+    Train the PPO agent with an LSTM-based feature extractor.
     
     Args:
         total_timesteps (int): Number of timesteps to train for
@@ -27,54 +27,21 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     # initialize the enviroment
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
     
-    class ResidualBlock(nn.Module):
-        def __init__(self, channels):
-            super().__init__()
-            self.norm1 = nn.LayerNorm(channels)
-            self.norm2 = nn.LayerNorm(channels)
-            self.layers = nn.Sequential(
-                nn.Linear(channels, channels),
-                self.norm1,
-                nn.ReLU(),
-                nn.Linear(channels, channels),
-                self.norm2
-            )
-        
-        def forward(self, x):
-            return F.relu(x + self.layers(x))
-
-    class CustomResNetwork(BaseFeaturesExtractor):
+    class LSTMFeatureExtractor(BaseFeaturesExtractor):
         def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 128):
             super().__init__(observation_space, features_dim)
+            input_dim = int(np.prod(observation_space.shape))
             
-            n_input = int(np.prod(observation_space.shape))
+            self.lstm = nn.LSTM(input_dim, features_dim, batch_first=True)
+            self.fc = nn.Linear(features_dim, features_dim)
             
-            self.input_norm = nn.LayerNorm(n_input)
-            self.input_layer = nn.Sequential(
-                nn.Linear(n_input, 128),
-                nn.ReLU()
-            )
-            
-            self.res_blocks = nn.ModuleList([
-                ResidualBlock(128),
-                ResidualBlock(128),
-                ResidualBlock(128)
-            ])
-            
-            self.shared_layer = nn.Linear(128, features_dim)
-            self.final_norm = nn.LayerNorm(features_dim)
-
         def forward(self, observations: torch.Tensor) -> torch.Tensor:
-            x = self.input_norm(observations)
-            x = self.input_layer(x)
-            for res_block in self.res_blocks:
-                x = res_block(x)
-            x = self.shared_layer(x)
-            return self.final_norm(x)
-
-    # Modified policy kwargs for PPO 
+            x = observations.unsqueeze(1)  # Add sequence dimension
+            lstm_out, _ = self.lstm(x)
+            return self.fc(lstm_out[:, -1, :])
+    
     policy_kwargs = dict(
-        features_extractor_class=CustomResNetwork,
+        features_extractor_class=LSTMFeatureExtractor,
         features_extractor_kwargs=dict(features_dim=128),
         net_arch=[dict(pi=[128, 128], vf=[128, 128])]
     )
@@ -85,17 +52,17 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         env, 
         verbose=1, 
         device='cpu',
-        learning_rate=3e-4, 
-        n_steps=2048, 
-        batch_size=512, 
-        n_epochs=15, 
-        gamma=0.99,
-        gae_lambda=0.95,
+        learning_rate=1e-4,  # reduced in switch Resnet --> LSTM
+        n_steps=1024,   # reduced in switch Resnet --> LSTM
+        batch_size=2048, # increased in switch Resnet --> LSTM
+        n_epochs=25, # increased in switch Resnet --> LSTM
+        gamma=0.97,  # adjusted for temporal credit assignment
+        gae_lambda=0.9,  # adjusted for temporal credit assignment
         clip_range=0.2, 
         clip_range_vf=0.2,  # Add value function clipping
         vf_coef = 0.5,
         normalize_advantage=True, 
-        max_grad_norm=0.3,
+        max_grad_norm=0.7,  # prevent explosing gradient
         policy_kwargs=policy_kwargs
         #tensorboard_log="./ppo_battle_tensorboard/"
     )
@@ -124,7 +91,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
 
 def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
     """
-    Test the trained agent.
+    Test the trained agent on LSTM-based feature extractor.
     
     Args:
         num_episodes (int): Number of episodes to test
@@ -183,7 +150,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         
 if __name__ == "__main__":
    #train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-   test_agent(num_episodes=2, agent_strength=10, bandit_strength=6)
+   test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
 
 

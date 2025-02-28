@@ -14,8 +14,8 @@ class BattleEnv(gym.Env):
         # Observation space: [agent_hp, bandit1_hp, bandit2_hp, agent_potions, bandit1_potions, bandit2_potions,
         #                    last_action_agent, last_action_bandit1, last_action_bandit2]
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0]), 
-            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1]), 
+            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0]), 
+            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1, 3, 1, 1]), 
             dtype=np.float32
         )
 
@@ -39,7 +39,7 @@ class BattleEnv(gym.Env):
         bandit_rand = random.randint(-5, 5)
         self.agent_attack_damage = self.agent_strength + agent_rand
         self.bandit_attack_damage = self.bandit_strength + bandit_rand
-        print(f"[DEBUG] New Damage Roll - Agent: {self.agent_attack_damage}, Bandit: {self.bandit_attack_damage}")
+        #print(f"[DEBUG] New Damage Roll - Agent: {self.agent_attack_damage}, Bandit: {self.bandit_attack_damage}")
         
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -77,7 +77,10 @@ class BattleEnv(gym.Env):
             self.last_action_agent,
             self.last_action_bandit1,
             self.last_action_bandit2, 
-            *valid_actions
+            *valid_actions, 
+            self.agent_potions, 
+            self.bandit1_potions, 
+            self.bandit2_potions
         ], dtype=np.float32)
     
 
@@ -241,7 +244,5 @@ class BattleEnv(gym.Env):
             else:  # Agent won
                 remaining_hp_percentage = self.agent_hp / self.max_hp
                 reward += 30 + (remaining_hp_percentage * 5)  # Bonus for remaining HP
-                # if self.agent_potions > 0:
-                #     reward += self.agent_potions*3 
-        print(f"[DEBUG] Before Returning Step - Agent HP: {self.agent_hp}, Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
+        #print(f"[DEBUG] Before Returning Step - Agent HP: {self.agent_hp}, Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
         return self._get_state(), reward, done, truncated, {}
