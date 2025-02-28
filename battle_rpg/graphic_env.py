@@ -99,14 +99,15 @@ class BattleEnv(gym.Env):
                 agent_damage_to_bandit1 = self.agent_attack_damage
                 self.bandit1_hp -= agent_damage_to_bandit1
                 # reward proportional to damage dealt
-                reward += agent_damage_to_bandit1 * 0.2
+                # reward += agent_damage_to_bandit1 * 0.2
+                reward += 1
                 # check if bandit died AFTER damage is applied
                 # if self.bandit1_hp>0:
                 #     reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
                     
                 if self.bandit1_hp <= 0:
                     self.bandit1_hp = 0  # ensure hp doesn't go negative
-                    reward += 5  # bonus for kill
+                    reward += 10  # previously 5 --> bonus for kill
             else:
                 reward = -50  # penalty for attacking dead bandit
                 
@@ -117,14 +118,15 @@ class BattleEnv(gym.Env):
                 #print(f"Damage dealt = {agent_damage_to_bandit2}")
                 self.bandit2_hp -= agent_damage_to_bandit2
                 #print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
-                reward += agent_damage_to_bandit2 * 0.2
+                #reward += agent_damage_to_bandit2 * 0.2
+                reward += 1
 
                 # if self.bandit2_hp > 0:
                 #     reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
                 
                 if self.bandit2_hp <= 0:
                     self.bandit2_hp = 0
-                    reward += 5
+                    reward += 10  # previously 5
             else:
                 reward = -50
                 
