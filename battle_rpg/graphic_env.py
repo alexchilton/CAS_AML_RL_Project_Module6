@@ -213,7 +213,7 @@ class BattleEnv(gym.Env):
         # Process only the current fighter's action
         if self.current_fighter == 1:  # Agent's turn
             reward = self._handle_agent_turn(action)
-            print(f"[DEBUG] After Agent Attack - Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
+            #print(f"[DEBUG] After Agent Attack - Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
         elif self.current_fighter == 2:  # Bandit1's turn
             reward = self._handle_bandit1_turn()
         elif self.current_fighter == 3:  # Bandit2's turn

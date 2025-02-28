@@ -200,8 +200,18 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         env.close()
         
 if __name__ == "__main__":
-   train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-   #test_agent(num_episodes=5, agent_strength=10, bandit_strength=6)
+#    train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
+    # test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+   # Load the existing trained model
+    env = BattleEnv(agent_strength=10, bandit_strength=6)
+    model = PPO.load("graphic_rpg_model", env=env)  # Ensure the environment is passed
+    model.save("graphic_rpg_model_backup") 
+
+    # Continue training for additional 500k timesteps
+    model.learn(total_timesteps=500000, progress_bar=True, log_interval=10)
+
+    # Save updated model
+    model.save("graphic_rpg_model")  # Overwrites the previous model with new training
 
 
 
