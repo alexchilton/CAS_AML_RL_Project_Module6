@@ -213,6 +213,11 @@ class GameVisualizer:
                           530, (self.screen_height - self.bottom_panel + 10) + count * 50)
 
     def get_state(self):
+        valid_actions = [
+        1 if self.bandit1_hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
+        1 if self.bandit2_hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
+        1 if self.agent_potions > 0 else 0  # Use potion valid if agent has potions
+    ]
         return np.array([
             self.knight.hp,
             self.bandit1.hp,
@@ -222,7 +227,11 @@ class GameVisualizer:
             self.bandit2.potions,
             -1,  # last_action_agent
             -1,  # last_action_bandit1
-            -1   # last_action_bandit2
+            -1,   # last_action_bandit2
+            *valid_actions, 
+            self.agent_potions, 
+            self.bandit1_potions, 
+            self.bandit2_potions
         ], dtype=np.float32)
 
     def execute_agent_action(self, action):
