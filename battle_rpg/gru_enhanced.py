@@ -18,9 +18,9 @@ random.seed(RANDOM_SEED)
 
 class GRUNetwork(nn.Module):
     """
-    GRU-based neural network for Q-learning
+    GRU-based neural network with increased capacity for Q-learning
     """
-    def __init__(self, input_size=15, hidden_size=128, gru_layers=2, output_size=3):
+    def __init__(self, input_size=15, hidden_size=256, gru_layers=2, output_size=3):
         super(GRUNetwork, self).__init__()
         
         self.input_size = input_size
@@ -28,32 +28,32 @@ class GRUNetwork(nn.Module):
         self.gru_layers = gru_layers
         self.output_size = output_size
         
-        # Feature extraction
+        # Enhanced feature extraction
         self.preprocess = nn.Sequential(
-            nn.Linear(input_size, 64),
+            nn.Linear(input_size, 128),  # Increased from 64
             nn.LeakyReLU(0.1),
-            nn.LayerNorm(64)
+            nn.LayerNorm(128)
         )
         
-        # GRU for sequence processing
+        # Deeper GRU with more units
         self.gru = nn.GRU(
-            input_size=64,
+            input_size=128,
             hidden_size=hidden_size,
             num_layers=gru_layers,
             batch_first=True
         )
         
-        # Dueling architecture: split into value and advantage streams
+        # Dueling architecture with more capacity
         self.value_stream = nn.Sequential(
-            nn.Linear(hidden_size, 64),
+            nn.Linear(hidden_size, 128),  # Increased from 64
             nn.LeakyReLU(0.1),
-            nn.Linear(64, 1)
+            nn.Linear(128, 1)
         )
         
         self.advantage_stream = nn.Sequential(
-            nn.Linear(hidden_size, 64),
+            nn.Linear(hidden_size, 128),  # Increased from 64
             nn.LeakyReLU(0.1),
-            nn.Linear(64, output_size)
+            nn.Linear(128, output_size)
         )
     
     def forward(self, x, hidden=None):
@@ -63,7 +63,7 @@ class GRUNetwork(nn.Module):
         # Preprocess each state in the sequence
         x_flat = x.reshape(-1, self.input_size)
         x_processed = self.preprocess(x_flat)
-        x_processed = x_processed.reshape(batch_size, seq_length, 64)
+        x_processed = x_processed.reshape(batch_size, seq_length, 128)
         
         # Process through GRU
         if hidden is None:
@@ -88,7 +88,7 @@ class ReplayBuffer:
     """
     Experience replay buffer that stores sequences of states
     """
-    def __init__(self, capacity=50000, sequence_length=4):
+    def __init__(self, capacity=100000, sequence_length=6):  # Increased capacity and sequence length
         self.buffer = deque(maxlen=capacity)
         self.sequence_length = sequence_length
     
@@ -121,17 +121,17 @@ class GRUDQNAgent:
         self,
         state_size=15,
         action_size=3,
-        hidden_size=256,  # increased from 128
+        hidden_size=256,  # Increased from 128
         gru_layers=2,
-        sequence_length=4,
-        batch_size=64,
-        learning_rate=0.0001,
+        sequence_length=6,  # Increased from 4
+        batch_size=128,  # Increased from 64
+        learning_rate=0.0002,  # Adjusted for better learning
         gamma=0.99,
         epsilon_start=1.0,
         epsilon_end=0.01,
         epsilon_decay=0.998,
         target_update_freq=200,
-        memory_size=50000
+        memory_size=100000  # Increased from 50000
     ):
         self.state_size = state_size
         self.action_size = action_size
@@ -312,19 +312,19 @@ def train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6, pr
     
     # Initialize the GRU-DQN agent
     agent = GRUDQNAgent(
-        state_size=15,  # Same as your environment's observation space
-        action_size=3,   # Same as your environment's action space
-        hidden_size=256,     # it was 128
-        gru_layers=2,    # Two GRU layers for better temporal awareness
-        sequence_length=4,
-        batch_size=64,
-        learning_rate=0.0001,  # it was 0.0003
+        state_size=15,
+        action_size=3,
+        hidden_size=256,
+        gru_layers=2,
+        sequence_length=6,
+        batch_size=128,
+        learning_rate=0.0002,
         gamma=0.99,
         epsilon_start=1.0,
         epsilon_end=0.01,
-        epsilon_decay=0.998,  # Slightly slower decay than default
+        epsilon_decay=0.998,
         target_update_freq=200,
-        memory_size=50000
+        memory_size=100000
     )
     
     # Training metrics
@@ -333,18 +333,14 @@ def train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6, pr
     wins = 0
     losses = 0
     episode_rewards = []
-    episode_lengths = []
     win_rates = []
     
     # Open log file
-    log_file = open('gru_dqn_training_log.txt', 'w')
+    log_file = open('high_capacity_gru_dqn_training_log.txt', 'w')
     log_file.write("Episode,Timestep,Reward,Loss,WinRate,Epsilon\n")
     
-    # Original stdout for progress bar
-    original_stdout = sys.stdout
-    
     try:
-        print("Starting GRU-DQN agent training...")
+        print("Starting high capacity GRU-DQN agent training...")
         
         # Training loop
         while total_steps < total_timesteps:
@@ -391,10 +387,7 @@ def train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6, pr
                 
             win_rate = (wins / episodes) * 100
             win_rates.append(win_rate)
-            
             episode_rewards.append(episode_reward)
-            episode_lengths.append(episode_step)
-            agent.episode_rewards.append(episode_reward)
             
             # Calculate average loss if any learning steps occurred
             avg_loss = episode_loss / max(1, loss_count)
@@ -407,43 +400,39 @@ def train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6, pr
             
             # Print progress
             if progress_bar and (episodes % 10 == 0 or episodes == 1):
-                sys.stdout = original_stdout
                 print(f"Episode {episodes} | Steps: {total_steps}/{total_timesteps} | "
                       f"Reward: {episode_reward:.2f} | Win Rate: {win_rate:.2f}% | "
                       f"Epsilon: {agent.epsilon:.4f}")
             
             # Save model periodically
             if episodes % 500 == 0:
-                agent.save(f"gru_dqn_model_{episodes}.pt")
+                agent.save(f"high_capacity_gru_dqn_model_{episodes}.pt")
+                print(f"Checkpoint saved at episode {episodes}")
         
         # Save final model
-        agent.save("gru_dqn_model_final.pt")
+        agent.save("high_capacity_gru_dqn_model_final.pt")
         
-        # Restore stdout
-        sys.stdout = original_stdout
         print(f"\nTraining complete! Episodes: {episodes}, Final win rate: {win_rate:.2f}%")
         
         # Plot training metrics using your plotter
-        with open('gru_dqn_training_log.txt', 'r') as f:
+        with open('high_capacity_gru_dqn_training_log.txt', 'r') as f:
             log_content = f.read()
         plot_training_metrics(log_content)
         
     except KeyboardInterrupt:
         # Handle user interruption
-        sys.stdout = original_stdout
         print("\nTraining interrupted. Saving current model...")
-        agent.save("gru_dqn_model_interrupted.pt")
+        agent.save("high_capacity_gru_dqn_model_interrupted.pt")
     
     finally:
         # Clean up
         log_file.close()
         env.close()
-        sys.stdout = original_stdout
     
     return agent
 
 
-def test_agent(num_episodes=100, agent_strength=10, bandit_strength=6, model_path="gru_dqn_model_final.pt"):
+def test_agent(num_episodes=100, agent_strength=10, bandit_strength=6, model_path="high_capacity_gru_dqn_model_final.pt"):
     """
     Test a trained agent
     
@@ -457,7 +446,14 @@ def test_agent(num_episodes=100, agent_strength=10, bandit_strength=6, model_pat
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
     
     # Create agent
-    agent = GRUDQNAgent()
+    agent = GRUDQNAgent(
+        state_size=15,
+        action_size=3,
+        hidden_size=256,
+        gru_layers=2,
+        sequence_length=6,
+        batch_size=128
+    )
     
     # Load trained model
     if not agent.load(model_path):
@@ -468,7 +464,7 @@ def test_agent(num_episodes=100, agent_strength=10, bandit_strength=6, model_pat
     total_reward = 0
     episode_lengths = []
     
-    print(f"\nTesting agent for {num_episodes} episodes...")
+    print(f"\nTesting high capacity agent for {num_episodes} episodes...")
     
     for episode in range(num_episodes):
         state, _ = env.reset()
@@ -531,7 +527,7 @@ def test_agent(num_episodes=100, agent_strength=10, bandit_strength=6, model_pat
     return win_rate, avg_reward
 
 
-def compare_to_random(num_episodes=100, agent_strength=10, bandit_strength=6, model_path="gru_dqn_model_final.pt"):
+def compare_to_random(num_episodes=100, agent_strength=10, bandit_strength=6, model_path="high_capacity_gru_dqn_model_final.pt"):
     """
     Compare trained agent against random policy
     
@@ -589,13 +585,13 @@ def compare_to_random(num_episodes=100, agent_strength=10, bandit_strength=6, mo
     
     # Print comparison
     print("\n===== Comparison =====")
-    print(f"GRU-DQN Agent: {trained_win_rate:.2f}% win rate, {trained_avg_reward:.2f} avg reward")
+    print(f"High Capacity GRU-DQN Agent: {trained_win_rate:.2f}% win rate, {trained_avg_reward:.2f} avg reward")
     print(f"Random Agent: {random_win_rate:.2f}% win rate, {random_avg_reward:.2f} avg reward")
     print(f"Improvement: {trained_win_rate - random_win_rate:.2f}% win rate, {trained_avg_reward - random_avg_reward:.2f} reward")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train or test a GRU-DQN agent for RPG battles")
+    parser = argparse.ArgumentParser(description="Train or test GRU-DQN agent for RPG battles")
     
     parser.add_argument('--mode', type=str, choices=['train', 'test', 'compare'], default='train',
                         help='Mode: train, test, or compare against random')
@@ -607,7 +603,7 @@ if __name__ == "__main__":
                         help='Strength parameter for the agent')
     parser.add_argument('--bandit_strength', type=int, default=6,
                         help='Strength parameter for the bandits')
-    parser.add_argument('--model_path', type=str, default='gru_dqn_model_final.pt',
+    parser.add_argument('--model_path', type=str, default='high_capacity_gru_dqn_model_final.pt',
                         help='Path to load/save model')
     
     args = parser.parse_args()
