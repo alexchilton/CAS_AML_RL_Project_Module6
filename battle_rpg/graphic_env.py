@@ -92,6 +92,9 @@ class BattleEnv(gym.Env):
     
     def _handle_agent_turn(self, action):
         reward = 0
+
+        if self.agent_hp > 0:
+            reward += 0.5   # Small reward for surviving another full turn cycle
         
         # Agent action
         if action == 0:  # Attack bandit 1
@@ -109,7 +112,7 @@ class BattleEnv(gym.Env):
                     self.bandit1_hp = 0  # ensure hp doesn't go negative
                     reward += 10  # previously 5 --> bonus for kill
             else:
-                reward = -50  # penalty for attacking dead bandit
+                reward = -10 # small penalty for forbidden action, should not do due to mask
                 
         elif action == 1:  # Attack bandit 2
             if self.bandit2_hp > 0:
@@ -128,7 +131,7 @@ class BattleEnv(gym.Env):
                     self.bandit2_hp = 0
                     reward += 10  # previously 5
             else:
-                reward = -50
+                reward = -10 # small penalty for forbidden action, should not do due to mask
                 
         elif action == 2:  # Heal
             if self.agent_potions > 0:
@@ -160,6 +163,67 @@ class BattleEnv(gym.Env):
                 #     reward -= 2 # Bigger penalty for healing with only one enemy left
         
         return reward
+
+    # def _handle_agent_turn(self, action):
+    #     reward = 0
+
+    #     # Tiny reward for surviving another full turn cycle
+    #     if self.agent_hp > 0:
+    #         reward += 1   
+
+    #     # ==== ATTACKING BANDIT 1 ====
+    #     if action == 0:
+    #         if self.bandit1_hp > 0:
+    #             damage = self.agent_attack_damage
+    #             self.bandit1_hp -= damage
+    #             reward += 1  # Base reward for attacking
+
+    #             # **Encourage finishing off weak enemies**
+    #             if self.bandit1_hp <= 0:
+    #                 self.bandit1_hp = 0
+    #                 reward += 10  # Big bonus for eliminating an enemy
+    #             elif self.bandit1_hp < 5:  
+    #                 reward += 5  # Encourage securing the kill quickly
+
+    #         else:
+    #             reward = -10  # Small penalty for attacking a dead enemy (shouldn't happen due to masking)
+
+    #     # ==== ATTACKING BANDIT 2 ====
+    #     elif action == 1:
+    #         if self.bandit2_hp > 0:
+    #             damage = self.agent_attack_damage
+    #             self.bandit2_hp -= damage
+    #             reward += 1  # Base reward for attacking
+
+    #             # **Encourage finishing off weak enemies**
+    #             if self.bandit2_hp <= 0:
+    #                 self.bandit2_hp = 0
+    #                 reward += 10  # Big bonus for eliminating an enemy
+    #             elif self.bandit2_hp < 5:  
+    #                 reward += 5  # Encourage securing the kill quickly
+
+    #         else:
+    #             reward = -10  # Small penalty for attacking a dead enemy (shouldn't happen due to masking)
+
+    #     # ==== USING POTION ====
+    #     elif action == 2:
+    #         if self.agent_potions > 0:
+    #             heal_amount = min(self.potion_effect, self.max_hp - self.agent_hp)
+    #             hp_percentage_before = self.agent_hp / self.max_hp
+
+    #             self.agent_hp += heal_amount
+    #             self.agent_potions -= 1
+
+    #             # **Strategic healing reward**
+    #             if hp_percentage_before < 0.3:
+    #                 reward += 4  # Very low HP, good decision!
+    #             elif hp_percentage_before < 0.7:
+    #                 reward += 2  # Medium HP, still reasonable
+    #             else:
+    #                 reward -= 2  # Penalize unnecessary healing at high HP
+
+    #     return reward
+
 
     def _handle_bandit1_turn(self):
         reward = 0
