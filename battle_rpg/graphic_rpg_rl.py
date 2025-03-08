@@ -341,8 +341,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
         
 if __name__ == "__main__":
-    # train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=10, agent_strength=10, bandit_strength=6)
+    # train_agent(total_timesteps=200000, agent_strength=10, bandit_strength=6)
+    test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
     # train_recurrent_ppo(total_timesteps=200000, agent_strength=10, bandit_strength=6)
@@ -352,17 +352,17 @@ if __name__ == "__main__":
     # plot_training_metrics(log_content)
 
 
-# #    Load the existing trained model
-#     env = BattleEnv(agent_strength=10, bandit_strength=6)
-#     model = PPO.load("graphic_rpg_model_backup", env=env)  # Ensure the environment is passed
-#     model.save("graphic_rpg_model_backup") 
-#     # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
+#    Load the existing trained model
+    env = BattleEnv(agent_strength=10, bandit_strength=6)
+    model = PPO.load("graphic_rpg_model_backup", env=env)  # Ensure the environment is passed
+    model.save("graphic_rpg_model_backup") 
+    # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
 
-#     # Continue training for additional 1M timesteps
-#     model.learn(total_timesteps=200000, progress_bar=True, log_interval=10)
+    # Continue training for additional 1M timesteps
+    model.learn(total_timesteps=200000, progress_bar=True, log_interval=10)
 
-#     # Save updated model
-#     model.save("graphic_rpg_model")  # Overwrites the previous model with new training
+    # Save updated model
+    model.save("graphic_rpg_model")  # Overwrites the previous model with new training
 
 
 

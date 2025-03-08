@@ -98,38 +98,36 @@ class BattleEnv(gym.Env):
         
         # Agent action
         if action == 0:  # Attack bandit 1
+            bandit1_hp_pct= self.bandit1_hp / self.enemy_max_hp
             if self.bandit1_hp > 0:
-                agent_damage_to_bandit1 = self.agent_attack_damage
-                self.bandit1_hp -= agent_damage_to_bandit1
-                # reward proportional to damage dealt
-                # reward += agent_damage_to_bandit1 * 0.2
-                reward += 1
-                # check if bandit died AFTER damage is applied
-                # if self.bandit1_hp>0:
-                #     reward += (1-(self.bandit1_hp/self.enemy_max_hp))*3  # bonus for attacking dying enemies
-                    
-                if self.bandit1_hp <= 0:
-                    self.bandit1_hp = 0  # ensure hp doesn't go negative
-                    reward += 10  # previously 5 --> bonus for kill
+                if bandit1_hp_pct <= 0.5:
+                    agent_damage_to_bandit1 = self.agent_attack_damage
+                    self.bandit1_hp -= agent_damage_to_bandit1
+                    reward += 2  # higher reward for attacking an injured bandit
+                elif bandit1_hp_pct > 0.5:
+                    agent_damage_to_bandit1 = self.agent_attack_damage
+                    self.bandit1_hp -= agent_damage_to_bandit1
+                    reward += 1
+            elif self.bandit1_hp <= 0:
+                self.bandit1_hp = 0  # ensure hp doesn't go negative
+                reward += 10  # bonus for kill
             else:
                 reward = -10 # small penalty for forbidden action, should not do due to mask
                 
         elif action == 1:  # Attack bandit 2
+            bandit2_hp_pct= self.bandit2_hp / self.enemy_max_hp
             if self.bandit2_hp > 0:
-                agent_damage_to_bandit2 = self.agent_attack_damage
-                #print(f"Before attack: Bandit2 HP = {self.bandit2_hp}")
-                #print(f"Damage dealt = {agent_damage_to_bandit2}")
-                self.bandit2_hp -= agent_damage_to_bandit2
-                #print(f"After attack: Bandit2 HP = {self.bandit2_hp}")
-                #reward += agent_damage_to_bandit2 * 0.2
-                reward += 1
-
-                # if self.bandit2_hp > 0:
-                #     reward += (1 - (self.bandit2_hp / self.enemy_max_hp)) *3 # bonus for attacking dying enemies
-                
-                if self.bandit2_hp <= 0:
-                    self.bandit2_hp = 0
-                    reward += 10  # previously 5
+                if bandit2_hp_pct <= 0.5:
+                    agent_damage_to_bandit2 = self.agent_attack_damage
+                    self.bandit2_hp -= agent_damage_to_bandit2
+                    reward += 2  # higher reward for attacking an injured bandit
+                elif bandit2_hp_pct > 0.5:
+                    agent_damage_to_bandit2 = self.agent_attack_damage
+                    self.bandit2_hp -= agent_damage_to_bandit2
+                    reward += 1
+            elif self.bandit2_hp <= 0:
+                self.bandit2_hp = 0  # ensure hp doesn't go negative
+                reward += 10  # bonus for kill
             else:
                 reward = -10 # small penalty for forbidden action, should not do due to mask
                 
@@ -152,16 +150,7 @@ class BattleEnv(gym.Env):
                 elif hp_percentage_before < 0.7:  # medium hp
                     reward += 2
                 else:  # high hp
-                    reward -= 2  # penalize unnecessary healing
-                    
-                # if self.bandit1_hp <= 0 or self.bandit2_hp <= 0:
-                #     reward -= 1  # Small penalty for healing when one enemy is already dead
-                
-                # # consider state when healing
-                # alive_enemies = (self.bandit1_hp > 0) + (self.bandit2_hp > 0)
-                # if alive_enemies == 1:
-                #     reward -= 2 # Bigger penalty for healing with only one enemy left
-        
+                    reward -= 2  # penalize unnecessary healing      
         return reward
 
     # def _handle_agent_turn(self, action):
