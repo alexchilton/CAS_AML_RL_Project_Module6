@@ -174,6 +174,15 @@ class GameVisualizer:
         self.green = (0, 255, 0)
         self.blue = (0, 0, 255)
         self.powderblue = (176, 224, 230)
+
+        # Add counter for invalid actions
+        self.consecutive_invalid_actions = 0
+        self.max_invalid_attempts = 5
+        
+        # Add notification properties
+        self.notification_text = None
+        self.notification_start_time = 0
+        self.notification_duration = 2000  # Display time in milliseconds
         
         # Initialize sprites
         global damage_text_group
@@ -257,28 +266,46 @@ class GameVisualizer:
         ], dtype=np.float32)
 
     def execute_agent_action(self, action):
-        self.last_action_agent = action
+        # Check if action is valid
+        valid_actions = [
+            1 if self.bandit1.alive else 0,
+            1 if self.bandit2.alive else 0, 
+            1 if self.knight.potions > 0 else 0
+        ]
         
-        if action == 0:  # Attack bandit 1
-            if self.bandit1.alive:
-                self.knight.attack(self.bandit1)
-                return True
-        elif action == 1:  # Attack bandit 2
-            if self.bandit2.alive:
-                self.knight.attack(self.bandit2)
-                return True
-        elif action == 2:  # Use potion
-            if self.knight.potions > 0:
-                if self.knight.max_hp - self.knight.hp > self.potion_effect:
-                    heal_amount = self.potion_effect
-                else:
-                    heal_amount = self.knight.max_hp - self.knight.hp
-                self.knight.hp += heal_amount
-                self.knight.potions -= 1
-                damage_text = DamageText(self.knight.rect.centerx, self.knight.rect.y, 
-                                       str(heal_amount), self.green)
-                damage_text_group.add(damage_text)
-                return True
+        # Get valid indices
+        valid_indices = [i for i, v in enumerate(valid_actions) if v == 1]
+        
+        # Map the action to a valid action
+        if valid_indices:
+            if action >= len(valid_indices):
+                actual_action = valid_indices[0]
+            else:
+                actual_action = valid_indices[action]
+            
+            # Record the mapped action
+            self.last_action_agent = actual_action
+               
+            if actual_action == 0:  # Attack bandit 1
+                if self.bandit1.alive:
+                    self.knight.attack(self.bandit1)
+                    return True
+            elif actual_action == 1:  # Attack bandit 2
+                if self.bandit2.alive:
+                    self.knight.attack(self.bandit2)
+                    return True
+            elif actual_action == 2:  # Use potion
+                if self.knight.potions > 0:
+                    if self.knight.max_hp - self.knight.hp > self.potion_effect:
+                        heal_amount = self.potion_effect
+                    else:
+                        heal_amount = self.knight.max_hp - self.knight.hp
+                    self.knight.hp += heal_amount
+                    self.knight.potions -= 1
+                    damage_text = DamageText(self.knight.rect.centerx, self.knight.rect.y, 
+                                        str(heal_amount), self.green)
+                    damage_text_group.add(damage_text)
+                    return True
         return False
 
     def execute_bandit_action(self, bandit, bandit_index):

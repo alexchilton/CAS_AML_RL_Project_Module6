@@ -14,8 +14,8 @@ class BattleEnv(gym.Env):
         # Observation space: [agent_hp, bandit1_hp, bandit2_hp, agent_potions, bandit1_potions, bandit2_potions,
         #                    last_action_agent, last_action_bandit1, last_action_bandit2]
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0]), 
-            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1, 3, 1, 1]), 
+            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0]), 
+            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1, 3, 1, 1, 3]), 
             dtype=np.float32
         )
 
@@ -41,7 +41,7 @@ class BattleEnv(gym.Env):
         self.bandit_attack_damage = self.bandit_strength + bandit_rand
         #print(f"[DEBUG] New Damage Roll - Agent: {self.agent_attack_damage}, Bandit: {self.bandit_attack_damage}")
         
-    def reset(self, seed=None):
+    def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
         self.agent_hp = self.max_hp
@@ -62,10 +62,14 @@ class BattleEnv(gym.Env):
             # Determine which actions are valid:
     # 1 if valid, 0 otherwise.
         valid_actions = [
-        1 if self.bandit1_hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
-        1 if self.bandit2_hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
-        1 if self.agent_potions > 0 else 0  # Use potion valid if agent has potions
-    ]
+            1 if self.bandit1_hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
+            1 if self.bandit2_hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
+            1 if self.agent_potions > 0 else 0  # Use potion valid if agent has potions
+        ]
+        
+        # Count how many valid actions there are
+        valid_count = sum(valid_actions)
+
         # Observation space: [agent_hp (knight), bandit_hp (times n of bandits), no. potions agent, no. potions enemies (times no. of enemies)]
         return np.array([
             self.agent_hp,
@@ -77,7 +81,8 @@ class BattleEnv(gym.Env):
             self.last_action_agent,
             self.last_action_bandit1,
             self.last_action_bandit2, 
-            *valid_actions, 
+            *valid_actions,
+            valid_count, 
             self.agent_potions, 
             self.bandit1_potions, 
             self.bandit2_potions
@@ -153,67 +158,6 @@ class BattleEnv(gym.Env):
                     reward -= 2  # penalize unnecessary healing      
         return reward
 
-    # def _handle_agent_turn(self, action):
-    #     reward = 0
-
-    #     # Tiny reward for surviving another full turn cycle
-    #     if self.agent_hp > 0:
-    #         reward += 1   
-
-    #     # ==== ATTACKING BANDIT 1 ====
-    #     if action == 0:
-    #         if self.bandit1_hp > 0:
-    #             damage = self.agent_attack_damage
-    #             self.bandit1_hp -= damage
-    #             reward += 1  # Base reward for attacking
-
-    #             # **Encourage finishing off weak enemies**
-    #             if self.bandit1_hp <= 0:
-    #                 self.bandit1_hp = 0
-    #                 reward += 10  # Big bonus for eliminating an enemy
-    #             elif self.bandit1_hp < 5:  
-    #                 reward += 5  # Encourage securing the kill quickly
-
-    #         else:
-    #             reward = -10  # Small penalty for attacking a dead enemy (shouldn't happen due to masking)
-
-    #     # ==== ATTACKING BANDIT 2 ====
-    #     elif action == 1:
-    #         if self.bandit2_hp > 0:
-    #             damage = self.agent_attack_damage
-    #             self.bandit2_hp -= damage
-    #             reward += 1  # Base reward for attacking
-
-    #             # **Encourage finishing off weak enemies**
-    #             if self.bandit2_hp <= 0:
-    #                 self.bandit2_hp = 0
-    #                 reward += 10  # Big bonus for eliminating an enemy
-    #             elif self.bandit2_hp < 5:  
-    #                 reward += 5  # Encourage securing the kill quickly
-
-    #         else:
-    #             reward = -10  # Small penalty for attacking a dead enemy (shouldn't happen due to masking)
-
-    #     # ==== USING POTION ====
-    #     elif action == 2:
-    #         if self.agent_potions > 0:
-    #             heal_amount = min(self.potion_effect, self.max_hp - self.agent_hp)
-    #             hp_percentage_before = self.agent_hp / self.max_hp
-
-    #             self.agent_hp += heal_amount
-    #             self.agent_potions -= 1
-
-    #             # **Strategic healing reward**
-    #             if hp_percentage_before < 0.3:
-    #                 reward += 4  # Very low HP, good decision!
-    #             elif hp_percentage_before < 0.7:
-    #                 reward += 2  # Medium HP, still reasonable
-    #             else:
-    #                 reward -= 2  # Penalize unnecessary healing at high HP
-
-    #     return reward
-
-
     def _handle_bandit1_turn(self):
         reward = 0
         if self.bandit1_hp > 0:  # Only act if alive
@@ -252,6 +196,28 @@ class BattleEnv(gym.Env):
 
 
     def step(self, action):
+        # Get only valid actions
+        valid_actions = [
+            1 if self.bandit1_hp > 0 else 0,
+            1 if self.bandit2_hp > 0 else 0,
+            1 if self.agent_potions > 0 else 0
+        ]
+        
+        # Get list of valid action indices
+        valid_indices = [i for i, v in enumerate(valid_actions) if v == 1]
+        
+        # Map the agent's action to a valid action
+        # The agent now chooses an index from the valid actions list
+        if valid_indices:
+            if action >= len(valid_indices):
+                actual_action = valid_indices[0]  # Default to first valid action if out of bounds
+            else:
+                actual_action = valid_indices[action]
+        else:
+            # Edge case: if no valid actions (shouldn't happen but just in case)
+            print("Warning: No valid actions available")
+            actual_action = 0  # Default action
+        
         # initialize the reward
         reward = 0
         self._calculate_attack_damage()

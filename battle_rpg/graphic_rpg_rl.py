@@ -123,15 +123,48 @@ import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.utils import get_linear_fn
+from stable_baselines3.common.policies import ActorCriticPolicy
 import pygame
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import gymnasium as gym
+from gymnasium.core import Wrapper
 
 from graphic_env import BattleEnv
 from metrics_plotter import plot_training_metrics
 
+
+# class GRUPredictor(BaseFeaturesExtractor):
+#     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
+#         super().__init__(observation_space, features_dim)
+        
+#         n_input = int(np.prod(observation_space.shape))
+#         self.gru_hidden_size = 128  # Hidden size
+#         self.gru_layers = 1  # Number of GRU layers
+        
+#         self.input_layer = nn.Sequential(
+#             nn.Linear(n_input, 256),
+#             nn.SiLU(),  
+#             nn.LayerNorm(256)
+#         )
+        
+#         self.gru = nn.GRU(256, self.gru_hidden_size, num_layers=self.gru_layers, batch_first=True)
+
+#         self.fc = nn.Sequential(
+#             nn.Linear(self.gru_hidden_size, features_dim),
+#             nn.LeakyReLU(0.1),  
+#             nn.LayerNorm(features_dim)
+#         )
+
+#     def forward(self, observations: torch.Tensor) -> torch.Tensor:
+#         x = self.input_layer(observations)
+#         x, _ = self.gru(x.unsqueeze(0))  # Batch-first
+#         x = self.fc(x.squeeze(0))
+#         return x
+
+
+# GRU with attention mechanism
 class GRUPredictor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
         super().__init__(observation_space, features_dim)
@@ -147,6 +180,13 @@ class GRUPredictor(BaseFeaturesExtractor):
         )
         
         self.gru = nn.GRU(256, self.gru_hidden_size, num_layers=self.gru_layers, batch_first=True)
+        
+        # Fix the attention dimensions to match GRU output
+        self.attention = nn.Sequential(
+            nn.Linear(self.gru_hidden_size, 64),
+            nn.Tanh(),
+            nn.Linear(64, 1)
+        )
 
         self.fc = nn.Sequential(
             nn.Linear(self.gru_hidden_size, features_dim),
@@ -156,10 +196,61 @@ class GRUPredictor(BaseFeaturesExtractor):
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         x = self.input_layer(observations)
-        x, _ = self.gru(x.unsqueeze(0))  # Batch-first
-        x = self.fc(x.squeeze(0))
+        
+        # Add batch dimension if needed
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)
+        
+        # Process batch of sequences with GRU
+        # GRU expects input of shape [batch_size, seq_len, input_size]
+        # For non-sequence data, we use seq_len=1
+        x = x.unsqueeze(1) if len(x.shape) == 2 else x
+        
+        # Run GRU
+        gru_out, _ = self.gru(x)
+        
+        # gru_out shape: [batch_size, seq_len, hidden_size]
+        # For attention to work properly, we need to be careful with dimensions
+        batch_size = gru_out.size(0)
+        
+        # Reshape for attention if needed
+        if gru_out.size(1) == 1:  # If sequence length is 1
+            # Just squeeze out the sequence dimension
+            gru_out = gru_out.squeeze(1)
+            # Simply use the final GRU output
+            x = self.fc(gru_out)
+        else:
+            # Apply attention over sequence dimension
+            # Reshape attention to match batch_size x seq_len x 1
+            attn_weights = F.softmax(self.attention(gru_out).squeeze(-1), dim=1).unsqueeze(-1)
+            # Apply attention weights
+            context = torch.sum(gru_out * attn_weights, dim=1)
+            # Final projection
+            x = self.fc(context)
+            
         return x
+  
 
+class DataAugmentationWrapper(Wrapper):
+    def step(self, action):
+        next_state, reward, done, truncated, info = self.env.step(action)
+        
+        if np.random.random() < 0.3:  # 30% chance of augmentation
+            next_state = self._augment_state(next_state)
+            
+        return next_state, reward, done, truncated, info
+    
+    def reset(self, **kwargs):
+        # Forward all arguments to the base environment
+        return self.env.reset(**kwargs)
+    
+    def _augment_state(self, state):
+        augmented = state.copy()
+        for i in range(3):  # HP indices
+            noise = np.random.uniform(-0.05, 0.05)
+            if augmented[i] > 0:
+                augmented[i] = max(0.1, augmented[i] * (1 + noise))
+        return augmented
 
 def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6):
     """
@@ -171,11 +262,12 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     """    
     # initialize the enviroment
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
+    env = DataAugmentationWrapper(env)
         
     policy_kwargs = dict(
         features_extractor_class=GRUPredictor,
         features_extractor_kwargs=dict(features_dim=256),
-        net_arch=[128, 128]  
+        net_arch=[256, 128]
     )
 
     lr_schedule = get_linear_fn(start=1.5e-4, end=2e-5, end_fraction=0.8)
@@ -185,10 +277,10 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         verbose=1, 
         device='cpu',
         learning_rate=lr_schedule,  
-        n_steps=4096,   
+        n_steps=1024,   
         batch_size=512, 
         n_epochs=25, 
-        gamma=0.95,  
+        gamma=0.98,  
         gae_lambda=0.99,  
         clip_range=0.2, 
         clip_range_vf=0.1,  
@@ -231,7 +323,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         bandit_strength (int): Strength parameter for the bandits
     """
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
-    model = PPO.load("graphic_rpg_model_best")
+    model = PPO.load("graphic_rpg_model")
     wins = 0
     losses = 0 
     
@@ -341,8 +433,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
         
 if __name__ == "__main__":
-    # train_agent(total_timesteps=200000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+    # train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6)
+    # test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
     # train_recurrent_ppo(total_timesteps=200000, agent_strength=10, bandit_strength=6)
@@ -354,12 +446,13 @@ if __name__ == "__main__":
 
 #    Load the existing trained model
     env = BattleEnv(agent_strength=10, bandit_strength=6)
-    model = PPO.load("graphic_rpg_model_backup", env=env)  # Ensure the environment is passed
+    env = DataAugmentationWrapper(env)
+    model = PPO.load("graphic_rpg_model", env=env)  # Ensure the environment is passed
     model.save("graphic_rpg_model_backup") 
     # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
 
     # Continue training for additional 1M timesteps
-    model.learn(total_timesteps=200000, progress_bar=True, log_interval=10)
+    model.learn(total_timesteps=500000, progress_bar=True, log_interval=10)
 
     # Save updated model
     model.save("graphic_rpg_model")  # Overwrites the previous model with new training
