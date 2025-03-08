@@ -151,7 +151,7 @@ class BattleEnv(gym.Env):
                 
                 # Strategic reward based on when healing occurred
                 if hp_percentage_before < 0.3:  # critical hp
-                    reward += 4
+                    reward += 5
                 elif hp_percentage_before < 0.7:  # medium hp
                     reward += 2
                 else:  # high hp

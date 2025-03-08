@@ -136,7 +136,7 @@ class DamageText(pygame.sprite.Sprite):
             self.kill()
 
 class GameVisualizer:
-    def __init__(self, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model_best"):
+    def __init__(self, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model"):
         pygame.init()
         
         # Game window settings
@@ -248,6 +248,7 @@ class GameVisualizer:
             1 if self.bandit2.hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
             1 if self.knight.potions > 0 else 0  # Use potion valid if agent has potions
         ]
+        valid_count = sum(valid_actions)
         
         return np.array([
             self.knight.hp,
@@ -260,6 +261,7 @@ class GameVisualizer:
             self.last_action_bandit1,
             self.last_action_bandit2,
             *valid_actions,
+            valid_count,
             self.knight.potions,
             self.bandit1.potions,
             self.bandit2.potions
@@ -487,7 +489,7 @@ class GameVisualizer:
         
         pygame.quit()
         
-def test_visualizer(num_episodes=5, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model_best"):
+def test_visualizer(num_episodes=5, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model"):
     """
     Run the battle visualization with the trained model.
     

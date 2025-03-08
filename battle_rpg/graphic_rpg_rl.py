@@ -270,7 +270,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         net_arch=[256, 128]
     )
 
-    lr_schedule = get_linear_fn(start=1.5e-4, end=2e-5, end_fraction=0.8)
+    lr_schedule = get_linear_fn(start=1.5e-4, end=3e-5, end_fraction=0.8)
     model = PPO(
         "MlpPolicy", 
         env, 
@@ -284,8 +284,8 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         gae_lambda=0.99,  
         clip_range=0.2, 
         clip_range_vf=0.1,  
-        vf_coef=0.7,  # increased from 0.5
-        ent_coef=0.06,  # increased from 0.03
+        vf_coef=0.5,  # increased from 0.5
+        ent_coef=0.03,  # increased from 0.03
         normalize_advantage=True, 
         max_grad_norm=0.3,  
         policy_kwargs=policy_kwargs
@@ -433,7 +433,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
         
 if __name__ == "__main__":
-    # train_agent(total_timesteps=500000, agent_strength=10, bandit_strength=6)
+    train_agent(total_timesteps=2000000, agent_strength=10, bandit_strength=6)
     # test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
@@ -444,18 +444,18 @@ if __name__ == "__main__":
     # plot_training_metrics(log_content)
 
 
-#    Load the existing trained model
-    env = BattleEnv(agent_strength=10, bandit_strength=6)
-    env = DataAugmentationWrapper(env)
-    model = PPO.load("graphic_rpg_model", env=env)  # Ensure the environment is passed
-    model.save("graphic_rpg_model_backup") 
-    # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
+# #    Load the existing trained model
+#     env = BattleEnv(agent_strength=10, bandit_strength=6)
+#     env = DataAugmentationWrapper(env)
+#     model = PPO.load("graphic_rpg_model", env=env)  # Ensure the environment is passed
+#     model.save("graphic_rpg_model_backup") 
+#     # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
 
-    # Continue training for additional 1M timesteps
-    model.learn(total_timesteps=500000, progress_bar=True, log_interval=10)
+#     # Continue training for additional 1M timesteps
+#     model.learn(total_timesteps=500000, progress_bar=True, log_interval=10)
 
-    # Save updated model
-    model.save("graphic_rpg_model")  # Overwrites the previous model with new training
+#     # Save updated model
+#     model.save("graphic_rpg_model")  # Overwrites the previous model with new training
 
 
 
