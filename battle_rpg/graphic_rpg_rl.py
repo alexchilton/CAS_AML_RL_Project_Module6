@@ -163,7 +163,7 @@ class GRUPredictor(BaseFeaturesExtractor):
 
 def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6):
     """
-    Train the PPO agent with an LSTM-based feature extractor.
+    Train the PPO agent with a GRU-based feature extractor.
     
     Args:
         total_timesteps (int): Number of timesteps to train for
@@ -231,7 +231,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         bandit_strength (int): Strength parameter for the bandits
     """
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
-    model = PPO.load("recurrent_rpg_model")
+    model = PPO.load("graphic_rpg_model_best")
     wins = 0
     losses = 0 
     
@@ -342,7 +342,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         
 if __name__ == "__main__":
     # train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=5, agent_strength=10, bandit_strength=6)
+    test_agent(num_episodes=10, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
     # train_recurrent_ppo(total_timesteps=200000, agent_strength=10, bandit_strength=6)

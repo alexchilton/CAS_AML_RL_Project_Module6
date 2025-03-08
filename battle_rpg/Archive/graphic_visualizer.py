@@ -4,11 +4,11 @@ import numpy as np
 from stable_baselines3 import PPO
 
 class Fighter():
-    def __init__(self, x, y, name, max_hp, strength, potions):
+    def __init__(self, x, y, name, max_hp, strenght, potions):
         self.name = name
         self.max_hp = max_hp
         self.hp = max_hp
-        self.strength = strength
+        self.strenght = strenght
         self.start_potions = potions
         self.potions = potions
         self.alive = True
@@ -73,7 +73,7 @@ class Fighter():
 
     def attack(self, target):
         rand = random.randint(-5, 5)
-        damage = self.strength + rand
+        damage = self.strenght + rand
         target.hp -= damage
         target.hurt()
         if target.hp < 1:
@@ -136,7 +136,7 @@ class DamageText(pygame.sprite.Sprite):
             self.kill()
 
 class GameVisualizer:
-    def __init__(self, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model_best"):
+    def __init__(self):
         pygame.init()
         
         # Game window settings
@@ -155,19 +155,6 @@ class GameVisualizer:
         self.action_wait_time = 90
         self.game_over = 0
         self.potion_effect = 15
-        self.agent_strength = agent_strength
-        self.bandit_strength = bandit_strength
-        
-        # Game state variables - match BattleEnv
-        self.knight_max_hp = 30
-        self.bandit_max_hp = 20
-        self.knight_max_potions = 3
-        self.bandit_max_potions = 1
-        
-        # Last actions for state representation
-        self.last_action_agent = -1
-        self.last_action_bandit1 = -1
-        self.last_action_bandit2 = -1
         
         # Colors
         self.red = (255, 0, 0)
@@ -175,12 +162,12 @@ class GameVisualizer:
         self.blue = (0, 0, 255)
         self.powderblue = (176, 224, 230)
         
+        # Load images and setup UI
+        self.setup_graphics()
+        
         # Initialize sprites
         global damage_text_group
         damage_text_group = pygame.sprite.Group()
-        
-        # Load images and setup UI
-        self.setup_graphics()
         
         # Initialize fighters
         self.setup_fighters()
@@ -189,12 +176,7 @@ class GameVisualizer:
         self.setup_health_bars()
         
         # Load the trained model
-        self.model = PPO.load(model_path)
-        
-        # Stats tracking
-        self.wins = 0
-        self.losses = 0
-        self.episodes_played = 0
+        self.model = PPO.load("graphic_rpg_model_best")
 
     def setup_graphics(self):
         # Load all images
@@ -202,14 +184,12 @@ class GameVisualizer:
         self.panel_image = pygame.image.load('img/Icons/panel_double.png').convert_alpha()
         self.victory_image = pygame.image.load('img/Icons/victory.png').convert_alpha()
         self.defeat_image = pygame.image.load('img/Icons/defeat.png').convert_alpha()
-        self.restart_button = pygame.Rect(330, 350, 140, 50)
         self.font = pygame.font.SysFont('Times New Roman', 21)
-        self.title_font = pygame.font.SysFont('Times New Roman', 32)
 
     def setup_fighters(self):
-        self.knight = Fighter(200, 260, 'Knight', self.knight_max_hp, self.agent_strength, self.knight_max_potions)
-        self.bandit1 = Fighter(550, 270, 'Bandit', self.bandit_max_hp, self.bandit_strength, self.bandit_max_potions)
-        self.bandit2 = Fighter(700, 270, 'Bandit', self.bandit_max_hp, self.bandit_strength, self.bandit_max_potions)
+        self.knight = Fighter(200, 260, 'Knight', 30, 10, 3)
+        self.bandit1 = Fighter(550, 270, 'Bandit', 20, 6, 1)
+        self.bandit2 = Fighter(700, 270, 'Bandit', 20, 6, 1)
         self.bandit_list = [self.bandit1, self.bandit2]
 
     def setup_health_bars(self):
@@ -233,13 +213,11 @@ class GameVisualizer:
                           530, (self.screen_height - self.bottom_panel + 10) + count * 50)
 
     def get_state(self):
-        # Match the state representation from BattleEnv
         valid_actions = [
-            1 if self.bandit1.hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
-            1 if self.bandit2.hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
-            1 if self.knight.potions > 0 else 0  # Use potion valid if agent has potions
-        ]
-        
+        1 if self.bandit1_hp > 0 else 0,  # Attack Bandit 1 valid if bandit1 is alive
+        1 if self.bandit2_hp > 0 else 0,  # Attack Bandit 2 valid if bandit2 is alive
+        1 if self.agent_potions > 0 else 0  # Use potion valid if agent has potions
+    ]
         return np.array([
             self.knight.hp,
             self.bandit1.hp,
@@ -247,18 +225,16 @@ class GameVisualizer:
             self.knight.potions,
             self.bandit1.potions,
             self.bandit2.potions,
-            self.last_action_agent,
-            self.last_action_bandit1,
-            self.last_action_bandit2,
-            *valid_actions,
-            self.knight.potions,
-            self.bandit1.potions,
-            self.bandit2.potions
+            -1,  # last_action_agent
+            -1,  # last_action_bandit1
+            -1,   # last_action_bandit2
+            *valid_actions, 
+            self.agent_potions, 
+            self.bandit1_potions, 
+            self.bandit2_potions
         ], dtype=np.float32)
 
     def execute_agent_action(self, action):
-        self.last_action_agent = action
-        
         if action == 0:  # Attack bandit 1
             if self.bandit1.alive:
                 self.knight.attack(self.bandit1)
@@ -281,74 +257,11 @@ class GameVisualizer:
                 return True
         return False
 
-    def execute_bandit_action(self, bandit, bandit_index):
-        # Determine bandit action based on health percentage
-        if bandit.alive:
-            # Record the action
-            bandit_action = 0  # Default: attack
-            
-            if (bandit.hp / bandit.max_hp) < 0.5 and bandit.potions > 0:
-                bandit_action = 1  # Heal
-                
-            # Set the appropriate action record
-            if bandit_index == 0:
-                self.last_action_bandit1 = bandit_action
-            else:
-                self.last_action_bandit2 = bandit_action
-                
-            # Execute the action
-            if bandit_action == 0:  # Attack
-                bandit.attack(self.knight)
-            else:  # Heal
-                heal_amount = min(self.potion_effect, bandit.max_hp - bandit.hp)
-                bandit.hp += heal_amount
-                bandit.potions -= 1
-                damage_text = DamageText(bandit.rect.centerx, bandit.rect.y, 
-                                       str(heal_amount), self.green)
-                damage_text_group.add(damage_text)
-            return True
-        return False
-
-    def reset_battle(self):
-        # Reset all fighters
-        self.knight.reset()
-        for bandit in self.bandit_list:
-            bandit.reset()
-            
-        # Reset game state
-        self.current_fighter = 1
-        self.game_over = 0
-        self.action_cooldown = 0
-        
-        # Reset action history
-        self.last_action_agent = -1
-        self.last_action_bandit1 = -1
-        self.last_action_bandit2 = -1
-        
-        # Clear damage text
-        damage_text_group.empty()
-        
-        # Increment episode counter
-        self.episodes_played += 1
-
     def run_visualization(self, num_episodes=1):
         running = True
-        episode_running = True
-        current_episode = 0
-        step_counter = 0
-        
-        while running and current_episode < num_episodes:
+        while running:                     
+            # Draw game state
             self.clock.tick(self.fps)
-            
-            # Check if we need to start a new episode
-            if not episode_running:
-                self.reset_battle()
-                episode_running = True
-                step_counter = 0
-                current_episode += 1
-                print(f"\nStarting Episode {current_episode}/{num_episodes}")
-            
-            # Draw game background
             self.screen.blit(self.background_image, (0, 0))
             self.draw_panel()
             
@@ -367,11 +280,6 @@ class GameVisualizer:
             # Update damage text
             damage_text_group.update()
             damage_text_group.draw(self.screen)
-            
-            # Show episode info
-            self.draw_text(f"Episode: {current_episode}/{num_episodes}", self.font, self.blue, 10, 10)
-            self.draw_text(f"Step: {step_counter}", self.font, self.blue, 10, 30)
-            self.draw_text(f"Wins: {self.wins} Losses: {self.losses}", self.font, self.blue, 10, 50)
 
             if self.game_over == 0:
                 # Agent turn
@@ -382,104 +290,56 @@ class GameVisualizer:
                         state = self.get_state()
                         action, _ = self.model.predict(state, deterministic=True)
                         
-                        # Print action (optional)
-                        action_names = ["Attack Bandit 1", "Attack Bandit 2", "Use Potion"]
-                        print(f"Step {step_counter}: Knight chose {action_names[action]}")
-                        
                         # Execute action
                         if self.execute_agent_action(action):
                             self.current_fighter += 1
                             self.action_cooldown = 0
-                            step_counter += 1
                 
                 # Enemy turns
                 else:
                     self.action_cooldown += 1
                     if self.action_cooldown >= self.action_wait_time:
-                        # Get current bandit
-                        current_bandit_index = self.current_fighter - 2
-                        current_bandit = self.bandit_list[current_bandit_index]
-                        
-                        # Execute bandit action
-                        self.execute_bandit_action(current_bandit, current_bandit_index)
+                        # Simple AI for bandits
+                        current_bandit = self.bandit_list[self.current_fighter - 2]
+                        if current_bandit.alive:
+                            if (current_bandit.hp / current_bandit.max_hp) < 0.5 and current_bandit.potions > 0:
+                                # Heal
+                                heal_amount = min(self.potion_effect, current_bandit.max_hp - current_bandit.hp)
+                                current_bandit.hp += heal_amount
+                                current_bandit.potions -= 1
+                                damage_text = DamageText(current_bandit.rect.centerx, current_bandit.rect.y, 
+                                                    str(heal_amount), self.green)
+                                damage_text_group.add(damage_text)
+                            else:
+                                # Attack
+                                current_bandit.attack(self.knight)
                         
                         self.current_fighter += 1
                         self.action_cooldown = 0
                 
-                # Reset fighters cycle
+                # Reset fighters
                 if self.current_fighter > self.total_fighters:
                     self.current_fighter = 1
 
-                # Check for game over
-                alive_bandits = sum(1 for bandit in self.bandit_list if bandit.alive)
-                if alive_bandits == 0:
-                    self.game_over = 1
-                    self.wins += 1
-                    print(f"Episode {current_episode} - VICTORY! Knight HP: {self.knight.hp}")
-                elif not self.knight.alive:
-                    self.game_over = -1
-                    self.losses += 1
-                    print(f"Episode {current_episode} - DEFEAT!")
+            # Check for game over
+            alive_bandits = sum(1 for bandit in self.bandit_list if bandit.alive)
+            if alive_bandits == 0:
+                self.game_over = 1
+            elif not self.knight.alive:
+                self.game_over = -1
 
-            # Display game over messages
             if self.game_over != 0:
                 if self.game_over == 1:
                     self.screen.blit(self.victory_image, (250, 50))
-                    self.draw_text("VICTORY!", self.title_font, self.green, 340, 150)
                 else:
                     self.screen.blit(self.defeat_image, (290, 50))
-                    self.draw_text("DEFEAT!", self.title_font, self.red, 350, 150)
-                
-                # Display continue button
-                pygame.draw.rect(self.screen, self.blue, self.restart_button)
-                self.draw_text("Continue", self.font, (255, 255, 255), 360, 365)
-                
-                # After a short delay, move to the next episode
-                self.action_cooldown += 1
-                if self.action_cooldown >= self.action_wait_time * 2:
-                    episode_running = False
 
             # Event handling
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                     episode_running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    # Check if restart button was clicked
-                    if self.game_over != 0 and self.restart_button.collidepoint(event.pos):
-                        episode_running = False
 
             pygame.display.update()
 
-        # Final stats
-        print("\n===== Battle Visualization Complete =====")
-        print(f"Episodes Played: {self.episodes_played}")
-        print(f"Wins: {self.wins}")
-        print(f"Losses: {self.losses}")
-        print(f"Win Rate: {(self.wins / self.episodes_played) * 100:.1f}%")
-        
-        pygame.quit()
-        
-def test_visualizer(num_episodes=5, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model_best"):
-    """
-    Run the battle visualization with the trained model.
-    
-    Args:
-        num_episodes (int): Number of episodes to visualize
-        agent_strength (int): Strength parameter for the agent
-        bandit_strength (int): Strength parameter for the bandits
-        model_path (str): Path to the trained model
-    """
-    visualizer = GameVisualizer(
-        agent_strength=agent_strength,
-        bandit_strength=bandit_strength,
-        model_path=model_path
-    )
-    
-    try:
-        print("\nStarting battle visualization...")
-        print("(Close the pygame window to stop)")
-        visualizer.run_visualization(num_episodes=num_episodes)
-    except Exception as e:
-        print(f"Error during visualization: {e}")
-        pygame.quit()
+        pygame.quit()               
