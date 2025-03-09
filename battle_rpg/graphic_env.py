@@ -98,8 +98,8 @@ class BattleEnv(gym.Env):
     def _handle_agent_turn(self, action):
         reward = 0
 
-        if self.agent_hp > 0:
-            reward += 0.5   # Small reward for surviving another full turn cycle
+        # if self.agent_hp > 0:
+        #     reward += 0.5   # Small reward for surviving another full turn cycle
         
         # Agent action
         if action == 0:  # Attack bandit 1

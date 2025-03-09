@@ -42,7 +42,7 @@ background_image=pygame.image.load('img/Background/background.jpg').convert_alph
 # panel image
 panel_image=pygame.image.load('img/Icons/panel_double.png').convert_alpha()
 # button image
-potion_image=pygame.image.load('img/Icons/potion.png').convert_alpha()
+potion_image=pygame.image.load('img/Icons/beer.png').convert_alpha()
 restart_image=pygame.image.load('img/Icons/restart.png').convert_alpha()
 # Load victory and defeat images
 victory_image=pygame.image.load('img/Icons/victory.png').convert_alpha()

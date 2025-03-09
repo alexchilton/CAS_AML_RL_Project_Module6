@@ -277,14 +277,14 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         verbose=1, 
         device='cpu',
         learning_rate=lr_schedule,  
-        n_steps=1024,   
+        n_steps=2048,   
         batch_size=512, 
         n_epochs=25, 
         gamma=0.98,  
-        gae_lambda=0.99,  
+        gae_lambda=0.98,  
         clip_range=0.2, 
         clip_range_vf=0.1,  
-        vf_coef=0.5,  # increased from 0.5
+        vf_coef=0.7,  # increased from 0.5
         ent_coef=0.03,  # increased from 0.03
         normalize_advantage=True, 
         max_grad_norm=0.3,  
@@ -433,8 +433,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
         
 if __name__ == "__main__":
-    train_agent(total_timesteps=2000000, agent_strength=10, bandit_strength=6)
-    # test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+    # train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
+    test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
     # train_recurrent_ppo(total_timesteps=200000, agent_strength=10, bandit_strength=6)
