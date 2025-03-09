@@ -216,7 +216,7 @@ class GameVisualizer:
         self.title_font = pygame.font.SysFont('Times New Roman', 32)
 
     def setup_fighters(self):
-        self.knight = Fighter(200, 260, 'Knight', self.knight_max_hp, self.agent_strength, self.knight_max_potions)
+        self.knight = Fighter(200, 260, 'Student', self.knight_max_hp, self.agent_strength, self.knight_max_potions)
         self.bandit1 = Fighter(550, 270, 'Bandit', self.bandit_max_hp, self.bandit_strength, self.bandit_max_potions)
         self.bandit2 = Fighter(700, 270, 'Bandit', self.bandit_max_hp, self.bandit_strength, self.bandit_max_potions)
         self.bandit_list = [self.bandit1, self.bandit2]

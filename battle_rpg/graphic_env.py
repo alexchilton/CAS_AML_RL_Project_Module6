@@ -117,7 +117,7 @@ class BattleEnv(gym.Env):
                 self.bandit1_hp = 0  # ensure hp doesn't go negative
                 reward += 10  # bonus for kill
             else:
-                reward = -10 # small penalty for forbidden action, should not do due to mask
+                reward = -10 # strong penalty for forbidden action, should not do due to mask
                 
         elif action == 1:  # Attack bandit 2
             bandit2_hp_pct= self.bandit2_hp / self.enemy_max_hp
@@ -134,7 +134,7 @@ class BattleEnv(gym.Env):
                 self.bandit2_hp = 0  # ensure hp doesn't go negative
                 reward += 10  # bonus for kill
             else:
-                reward = -10 # small penalty for forbidden action, should not do due to mask
+                reward = -10 # strong penalty for forbidden action, should not do due to mask
                 
         elif action == 2:  # Heal
             if self.agent_potions > 0:
@@ -216,7 +216,7 @@ class BattleEnv(gym.Env):
         else:
             # Edge case: if no valid actions (shouldn't happen but just in case)
             print("Warning: No valid actions available")
-            actual_action = 0  # Default action
+            actual_action = 0  # Default action   --------------------- correct here, forbidden action should not happen at all, 
         
         # initialize the reward
         reward = 0
