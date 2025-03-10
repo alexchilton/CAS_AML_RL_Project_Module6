@@ -12,10 +12,10 @@ class BattleEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
         
         # Observation space: [agent_hp, bandit1_hp, bandit2_hp, agent_potions, bandit1_potions, bandit2_potions,
-        #                    last_action_agent, last_action_bandit1, last_action_bandit2]
+        #                    last_action_agent, last_action_bandit1, last_action_bandit2, valid_action (x3), valid_count]
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0]), 
-            high=np.array([100, 100, 100, 100, 100, 100, 2, 2, 2, 1, 1, 1, 3, 1, 1, 3]), 
+            low=np.array([0, 0, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0]), 
+            high=np.array([100, 100, 100, 3, 1, 1, 2, 2, 2, 1, 1, 1, 3]), 
             dtype=np.float32
         )
 
@@ -83,9 +83,6 @@ class BattleEnv(gym.Env):
             self.last_action_bandit2, 
             *valid_actions,
             valid_count, 
-            self.agent_potions, 
-            self.bandit1_potions, 
-            self.bandit2_potions
         ], dtype=np.float32)
     
 
@@ -116,8 +113,6 @@ class BattleEnv(gym.Env):
             elif self.bandit1_hp <= 0:
                 self.bandit1_hp = 0  # ensure hp doesn't go negative
                 reward += 10  # bonus for kill
-            else:
-                reward = -10 # strong penalty for forbidden action, should not do due to mask
                 
         elif action == 1:  # Attack bandit 2
             bandit2_hp_pct= self.bandit2_hp / self.enemy_max_hp
@@ -133,8 +128,6 @@ class BattleEnv(gym.Env):
             elif self.bandit2_hp <= 0:
                 self.bandit2_hp = 0  # ensure hp doesn't go negative
                 reward += 10  # bonus for kill
-            else:
-                reward = -10 # strong penalty for forbidden action, should not do due to mask
                 
         elif action == 2:  # Heal
             if self.agent_potions > 0:
@@ -202,21 +195,11 @@ class BattleEnv(gym.Env):
             1 if self.bandit2_hp > 0 else 0,
             1 if self.agent_potions > 0 else 0
         ]
-        
-        # Get list of valid action indices
-        valid_indices = [i for i, v in enumerate(valid_actions) if v == 1]
-        
-        # Map the agent's action to a valid action
-        # The agent now chooses an index from the valid actions list
-        if valid_indices:
-            if action >= len(valid_indices):
-                actual_action = valid_indices[0]  # Default to first valid action if out of bounds
-            else:
-                actual_action = valid_indices[action]
-        else:
-            # Edge case: if no valid actions (shouldn't happen but just in case)
-            print("Warning: No valid actions available")
-            actual_action = 0  # Default action   --------------------- correct here, forbidden action should not happen at all, 
+
+        # Use the valid actions mask to filter the action space
+        if valid_actions[action] == 0:
+            reward = -10  # Apply penalty for invalid action
+            return self._get_state(), reward, False, False, {} 
         
         # initialize the reward
         reward = 0
@@ -261,9 +244,9 @@ class BattleEnv(gym.Env):
         # Calculate reward
         if done:
             if self.agent_hp <= 0:  # Agent lost
-                reward = -30
+                reward = -50
             else:  # Agent won
                 remaining_hp_percentage = self.agent_hp / self.max_hp
-                reward += 30 + (remaining_hp_percentage * 5)  # Bonus for remaining HP
+                reward += 50 + (remaining_hp_percentage * 5)  # Bonus for remaining HP
         #print(f"[DEBUG] Before Returning Step - Agent HP: {self.agent_hp}, Bandit1 HP: {self.bandit1_hp}, Bandit2 HP: {self.bandit2_hp}")
         return self._get_state(), reward, done, truncated, {}
