@@ -262,9 +262,6 @@ class GameVisualizer:
             self.last_action_bandit2,
             *valid_actions,
             valid_count,
-            self.knight.potions,
-            self.bandit1.potions,
-            self.bandit2.potions
         ], dtype=np.float32)
 
     def execute_agent_action(self, action):

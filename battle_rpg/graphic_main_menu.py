@@ -34,6 +34,7 @@ background_img = pygame.image.load('img/Background/main_bg_resized.jpg').convert
 # Buttons
 ch_1_img = pygame.image.load('img/Icons/RPG_Button_1_noBg copy.png').convert_alpha()
 ch_2_img = pygame.image.load('img/Icons/RPG_Button_2_noBg copy.png').convert_alpha()
+ch_3_img = pygame.image.load('img/Icons/RPG_Button_3_noBg copy.png').convert_alpha()
 credits_img = pygame.image.load('img/Icons/credits.png').convert_alpha()
 back_img = pygame.image.load('img/Icons/back.png').convert_alpha()
 
@@ -47,9 +48,10 @@ def draw_bg():
     screen.blit(background_img, (0, 0))
 
 # create buttons
-chapter_1_button = button.Button(screen, 190, 150, ch_1_img, 420, 65)
-chapter_2_button = button.Button(screen, 190, 250, ch_2_img, 420, 65)
-credits_button = button.Button(screen, 650, 340, credits_img, 165, 60)
+chapter_1_button = button.Button(screen, 190, 120, ch_1_img, 420, 65)
+chapter_2_button = button.Button(screen, 190, 220, ch_2_img, 420, 65)
+chapter_3_button = button.Button(screen, 190, 320, ch_3_img, 420, 65)
+credits_button = button.Button(screen, 660, 350, credits_img, 130, 50)
 back_button = button.Button(screen, 710, 300, back_img, 64, 64)
 
 # Function to show credits screen
@@ -91,6 +93,9 @@ while run:
     
     if chapter_2_button.draw():
         subprocess.Popen([sys.executable, 'graphic_ch2.py'])
+
+    if chapter_3_button.draw():
+        subprocess.Popen([sys.executable, 'graphic_ch2.py'])   # Lauro to change with ur file
 
     if credits_button.draw():
         show_credits()  # Open credits screen
