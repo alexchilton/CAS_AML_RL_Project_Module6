@@ -87,7 +87,7 @@ while run:
 
     # Check and draw buttons
     if chapter_1_button.draw():
-        print('Chapter 1 button pressed')
+        subprocess.Popen([sys.executable, 'play_frozen_lake.py'])
     
     if chapter_2_button.draw():
         subprocess.Popen([sys.executable, 'graphic_ch2.py'])
