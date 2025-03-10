@@ -488,6 +488,160 @@ class GameVisualizer:
         print(f"Win Rate: {(self.wins / self.episodes_played) * 100:.1f}%")
         
         pygame.quit()
+
+    def test_visualizer_gp(self, num_episodes=2, agent_strength=10, bandit_strength=6,
+                           model_path="genetic_rpg_model_best.pkl"):
+        """
+        Run the battle visualization with a genetic policy.
+
+        Args:
+            num_episodes (int): Number of episodes to visualize
+            agent_strength (int): Strength parameter for the agent
+            bandit_strength (int): Strength parameter for the bandits
+            model_path (str): Path to the saved genetic policy model
+        """
+        try:
+            # Import the GeneticPolicyIndividual class
+            from genetic_rpg_rl import GeneticPolicyIndividual
+
+            # Create genetic policy individual and load the model
+            policy = GeneticPolicyIndividual()
+            policy.load(model_path)
+
+            # Create visualizer
+            visualizer = GameVisualizer(
+                agent_strength=agent_strength,
+                bandit_strength=bandit_strength
+            )
+
+            running = True
+            episode_running = True
+            current_episode = 0
+            step_counter = 0
+
+            while running and current_episode < num_episodes:
+                visualizer.clock.tick(visualizer.fps)
+
+                # Check if we need to start a new episode
+                if not episode_running:
+                    visualizer.reset_battle()
+                    episode_running = True
+                    step_counter = 0
+                    current_episode += 1
+                    print(f"\nStarting Episode {current_episode}/{num_episodes}")
+
+                # Draw game background
+                visualizer.screen.blit(visualizer.background_image, (0, 0))
+                visualizer.draw_panel()
+
+                # Update and draw fighters
+                visualizer.knight.update()
+                visualizer.knight.draw(visualizer.screen)
+                for bandit in visualizer.bandit_list:
+                    bandit.update()
+                    bandit.draw(visualizer.screen)
+
+                # Update and draw health bars
+                visualizer.knight_health_bar.draw(visualizer.knight.hp, visualizer.screen)
+                visualizer.bandit1_health_bar.draw(visualizer.bandit1.hp, visualizer.screen)
+                visualizer.bandit2_health_bar.draw(visualizer.bandit2.hp, visualizer.screen)
+
+                # Update damage text (access global damage_text_group)
+                global damage_text_group  # Access the global variable
+                damage_text_group.update()  # Update the global damage_text_group
+                damage_text_group.draw(visualizer.screen)  # Draw the global damage_text_group
+
+                # Show episode info
+                visualizer.draw_text(f"Episode: {current_episode}/{num_episodes}",
+                                     visualizer.font, visualizer.blue, 10, 10)
+                visualizer.draw_text(f"Step: {step_counter}",
+                                     visualizer.font, visualizer.blue, 10, 30)
+
+                if visualizer.game_over == 0:
+                    # Agent turn
+                    if visualizer.current_fighter == 1:
+                        visualizer.action_cooldown += 1
+                        if visualizer.action_cooldown >= visualizer.action_wait_time:
+                            # Get state and predict action
+                            state = visualizer.get_state()
+                            action, _ = self.model.predict(state, deterministic=True)
+
+                            # Print action (optional)
+                            action_names = ["Attack Bandit 1", "Attack Bandit 2", "Use Potion"]
+                            print(f"Step {step_counter}: Knight chose {action_names[action]}")
+
+                            # Execute action
+                            if visualizer.execute_agent_action(action):
+                                visualizer.current_fighter += 1
+                                visualizer.action_cooldown = 0
+                                step_counter += 1
+
+                    # Enemy turns
+                    else:
+                        visualizer.action_cooldown += 1
+                        if visualizer.action_cooldown >= visualizer.action_wait_time:
+                            # Get current bandit
+                            current_bandit_index = visualizer.current_fighter - 2
+                            current_bandit = visualizer.bandit_list[current_bandit_index]
+
+                            # Execute bandit action
+                            visualizer.execute_bandit_action(current_bandit, current_bandit_index)
+
+                            visualizer.current_fighter += 1
+                            visualizer.action_cooldown = 0
+
+                    # Reset fighters cycle
+                    if visualizer.current_fighter > visualizer.total_fighters:
+                        visualizer.current_fighter = 1
+
+                    # Check for game over
+                    alive_bandits = sum(1 for bandit in visualizer.bandit_list if bandit.alive)
+                    if alive_bandits == 0:
+                        visualizer.game_over = 1
+                        print(f"Episode {current_episode} - VICTORY! Knight HP: {visualizer.knight.hp}")
+                    elif not visualizer.knight.alive:
+                        visualizer.game_over = -1
+                        print(f"Episode {current_episode} - DEFEAT!")
+
+                # Display game over messages
+                if visualizer.game_over != 0:
+                    if visualizer.game_over == 1:
+                        visualizer.screen.blit(visualizer.victory_image, (250, 50))
+                        visualizer.draw_text("VICTORY!", visualizer.title_font, visualizer.green, 340, 150)
+                    else:
+                        visualizer.screen.blit(visualizer.defeat_image, (290, 50))
+                        visualizer.draw_text("DEFEAT!", visualizer.title_font, visualizer.red, 350, 150)
+
+                    # Display continue button
+                    pygame.draw.rect(visualizer.screen, visualizer.blue, visualizer.restart_button)
+                    visualizer.draw_text("Continue", visualizer.font, (255, 255, 255), 360, 365)
+
+                    # After a short delay, move to the next episode
+                    visualizer.action_cooldown += 1
+                    if visualizer.action_cooldown >= visualizer.action_wait_time * 2:
+                        episode_running = False
+
+                # Event handling
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                        episode_running = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        # Check if restart button was clicked
+                        if visualizer.game_over != 0 and visualizer.restart_button.collidepoint(event.pos):
+                            episode_running = False
+
+                pygame.display.update()
+
+            pygame.quit()
+
+        except ImportError as e:
+            print(f"Could not import required module: {e}")
+        except Exception as e:
+            print(f"Error during visualization: {e}")
+            import traceback
+            traceback.print_exc()
+
         
 def test_visualizer(num_episodes=5, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model"):
     """
