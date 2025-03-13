@@ -56,6 +56,7 @@ class BattleEnv(gym.Env):
         self.last_action_bandit1 = -1
         self.last_action_bandit2 = -1
 
+
         return self._get_state(), {}
     
     def _get_state(self):

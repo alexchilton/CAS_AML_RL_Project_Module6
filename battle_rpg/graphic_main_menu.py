@@ -95,7 +95,7 @@ while run:
         subprocess.Popen([sys.executable, 'graphic_ch2.py'])
 
     if chapter_1_button.draw():
-        subprocess.Popen([sys.executable, 'graphic_ch2.py'])   # Lauro to change with ur file
+        subprocess.Popen(['jupyter', 'notebook', '01.bern_2_muerren.ipynb'])  
 
     if credits_button.draw():
         show_credits()  # Open credits screen

@@ -41,28 +41,29 @@ button_font = pygame.font.Font(None, 36)  # Font for the main menu button
 
 # Text content - one set of lines per image
 image_text = [
-    [ 
+    [
         "THE MÜRREN GAMES"
     ],
     [
-        "It's January and time for Module 6 in Mürren, on the beautiful Berner Alps,",
-        "a brand new and unexpected adventure is ",
-        "awaiting the young CAS student which will",
-        "be requested to deal with challenges not alone, but with valuable Agents!"
+        "January 2025, Mürren...",
+        "A new and unexpected adventure awaits a young CAS student,",
+        "who will face challenges not alone, but with the help of valuable Agents!"
     ],
     [
-        "Frozen lakes shall be overcomed..."
+        "Frozen lakes must be crossed..."
     ],
     [
-        "Fearsome bandits which are aggressively keeping Mykhailo captive..."
+        "Fearsome bandits, aggressively guarding Mykhailo, await your arrival..."
     ],
     [
-        "to finally find the way to Regina, where salvation is to be found"
+        "But first, the best route to Mürren must be found..."
     ],
     [
-        "all that with the power of RL (and some Beers! :)",
+        "All of this, powered by RL (and some beers! :))",
         "",
-        "Good luck young adventurer, may the code be with you!"
+        "Good luck, young adventurer.", 
+        "",
+        "May the code be with you!"
     ]
 ]
 
@@ -71,6 +72,8 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GOLD = (255, 215, 0)
 RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+POWDERBLUE = (176, 224, 230)
 
 def render_text_line_with_outline(surface, text, font, pos, text_color=WHITE, outline_color=BLACK, outline_width=2):
     """Render a single line of text with an outline for better visibility"""
@@ -89,7 +92,7 @@ def render_text_line_with_outline(surface, text, font, pos, text_color=WHITE, ou
     
     return text_rect  # Return the rect of the rendered text
 
-def render_growing_title(surface, text, font, pos, scale_factor, text_color=GOLD, outline_color=BLACK, outline_width=3):
+def render_growing_title(surface, text, font, pos, scale_factor, text_color=POWDERBLUE, outline_color=BLACK, outline_width=3):
     """Render title text with growth effect"""
     # Apply scaling to the font size
     scaled_size = int(font.get_height() * scale_factor)
