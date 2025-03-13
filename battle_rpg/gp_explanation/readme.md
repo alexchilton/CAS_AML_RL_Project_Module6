@@ -1,4 +1,4 @@
-In the genetic algorithm implementation for the battle environment, mutations happen at multiple levels throughout the evolutionary process. Let me clarify how mutations work in this context:
+In the genetic algorithm implementation for the battle environment, mutations happen at multiple levels throughout the evolutionary process. 
 
 ## Mutation Frequency
 
