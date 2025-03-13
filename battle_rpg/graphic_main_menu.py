@@ -88,13 +88,13 @@ while run:
     draw_text("The Mürren games", font, blue, 220, 50)
 
     # Check and draw buttons
-    if chapter_1_button.draw():
+    if chapter_2_button.draw():
         subprocess.Popen([sys.executable, 'play_frozen_lake.py'])
     
-    if chapter_2_button.draw():
+    if chapter_3_button.draw():
         subprocess.Popen([sys.executable, 'graphic_ch2.py'])
 
-    if chapter_3_button.draw():
+    if chapter_1_button.draw():
         subprocess.Popen([sys.executable, 'graphic_ch2.py'])   # Lauro to change with ur file
 
     if credits_button.draw():

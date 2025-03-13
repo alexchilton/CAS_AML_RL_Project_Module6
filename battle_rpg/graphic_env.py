@@ -36,7 +36,7 @@ class BattleEnv(gym.Env):
 
     def _calculate_attack_damage(self):
         agent_rand = random.randint(-5, 5)
-        bandit_rand = random.randint(-5, 5)
+        bandit_rand = random.randint(-3, 3)
         self.agent_attack_damage = self.agent_strength + agent_rand
         self.bandit_attack_damage = self.bandit_strength + bandit_rand
         #print(f"[DEBUG] New Damage Roll - Agent: {self.agent_attack_damage}, Bandit: {self.bandit_attack_damage}")

@@ -136,9 +136,9 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         learning_rate=lr_schedule,  
         n_steps=2048,   
         batch_size=512, 
-        n_epochs=25, 
+        n_epochs=15, 
         gamma=0.98,  
-        gae_lambda=0.98,  
+        gae_lambda=0.95,  
         clip_range=0.2, 
         clip_range_vf=0.1,  
         vf_coef=0.7,  # increased from 0.5
@@ -166,8 +166,8 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     plot_training_metrics(log_content)
     
     # Save the model
-    model.save("graphic_rpg_model")
-    print(f"model saved as 'graphic_rpg_model' " )
+    model.save("graphic_rpg_model_cheat")
+    print(f"model saved as 'graphic_rpg_model_cheat' " )
 
 
 def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
@@ -180,7 +180,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         bandit_strength (int): Strength parameter for the bandits
     """
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
-    model = PPO.load("graphic_rpg_model")
+    model = PPO.load("graphic_rpg_model_cheat")
     wins = 0
     losses = 0 
     
@@ -231,7 +231,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
        
 if __name__ == "__main__":
-    # train_agent(total_timesteps=5000000, agent_strength=10, bandit_strength=6)
+    # train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
     test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
@@ -245,15 +245,15 @@ if __name__ == "__main__":
 # #    Load the existing trained model
 #     env = BattleEnv(agent_strength=10, bandit_strength=6)
 #     env = DataAugmentationWrapper(env)
-#     model = PPO.load("graphic_rpg_model", env=env)  # Ensure the environment is passed
-#     model.save("graphic_rpg_model_backup") 
+#     model = PPO.load("graphic_rpg_model_cheat", env=env)  # Ensure the environment is passed
+#     model.save("graphic_rpg_model_cheat_backup") 
 #     # model.policy.optimizer.param_groups[0]['lr'] = 3e-5
 
 #     # Continue training for additional 1M timesteps
 #     model.learn(total_timesteps=500000, progress_bar=True, log_interval=10)
 
 #     # Save updated model
-#     model.save("graphic_rpg_model")  # Overwrites the previous model with new training
+#     model.save("graphic_rpg_model_cheat")  # Overwrites the previous model with new training
 
 
 
