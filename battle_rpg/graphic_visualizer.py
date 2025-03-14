@@ -136,7 +136,7 @@ class DamageText(pygame.sprite.Sprite):
             self.kill()
 
 class GameVisualizer:
-    def __init__(self, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model"):
+    def __init__(self, agent_strength=10, bandit_strength=6, model_path="graphic_rpg_model_best"):
         pygame.init()
         
         # Game window settings

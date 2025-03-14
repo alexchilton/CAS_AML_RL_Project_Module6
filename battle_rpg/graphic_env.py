@@ -148,8 +148,8 @@ class BattleEnv(gym.Env):
                     reward += 5
                 elif hp_percentage_before < 0.7:  # medium hp
                     reward += 2
-                else:  # high hp
-                    reward -= 2  # penalize unnecessary healing      
+                # else:  # high hp
+                #     reward -= 2  # penalize unnecessary healing      
         return reward
 
     def _handle_bandit1_turn(self):

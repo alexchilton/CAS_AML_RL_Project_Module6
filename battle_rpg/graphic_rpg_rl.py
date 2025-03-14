@@ -1,7 +1,3 @@
-from stable_baselines3.common.policies import ActorCriticPolicy
-from sb3_contrib import RecurrentPPO  # ✅ Use RecurrentPPO (Supports LSTMs)
-
-
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -142,7 +138,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
         clip_range=0.2, 
         clip_range_vf=0.1,  
         vf_coef=0.7,  # increased from 0.5
-        ent_coef=0.03,  # increased from 0.03
+        ent_coef=0.03,  
         normalize_advantage=True, 
         max_grad_norm=0.3,  
         policy_kwargs=policy_kwargs
