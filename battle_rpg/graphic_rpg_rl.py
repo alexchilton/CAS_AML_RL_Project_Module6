@@ -176,7 +176,7 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
         bandit_strength (int): Strength parameter for the bandits
     """
     env = BattleEnv(agent_strength=agent_strength, bandit_strength=bandit_strength)
-    model = PPO.load("graphic_rpg_model_cheat")
+    model = PPO.load("graphic_rpg_model_best")
     wins = 0
     losses = 0 
     
