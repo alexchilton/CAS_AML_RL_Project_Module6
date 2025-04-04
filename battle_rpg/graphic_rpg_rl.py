@@ -163,7 +163,7 @@ def train_agent(total_timesteps = 1000, agent_strength = 10, bandit_strength = 6
     
     # Save the model
     model.save("graphic_rpg_model_cheat")
-    print(f"model saved as 'graphic_rpg_model_cheat' " )
+    print(f"model saved as 'graphic_rpg_model' " )
 
 
 def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
@@ -227,8 +227,8 @@ def test_agent(num_episodes=5, agent_strength=10, bandit_strength=6):
 
        
 if __name__ == "__main__":
-    # train_agent(total_timesteps=1000000, agent_strength=10, bandit_strength=6)
-    test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
+    train_agent(total_timesteps=100000, agent_strength=10, bandit_strength=6)
+    # test_agent(num_episodes=100, agent_strength=10, bandit_strength=6)
 
     # results = test_recurrent_ppo(num_episodes=50, render=False, verbose=True)
     # train_recurrent_ppo(total_timesteps=200000, agent_strength=10, bandit_strength=6)
